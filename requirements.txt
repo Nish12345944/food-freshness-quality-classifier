@@ -1,15 +1,11 @@
 flask
 flask-login
 flask-sqlalchemy
-opencv-python
+opencv-python-headless
 pillow
 numpy
 werkzeug
 sqlalchemy
-jinja2
-markupsafe
-itsdangerous
-click
-blinker
 reportlab
 qrcode
+gunicorn

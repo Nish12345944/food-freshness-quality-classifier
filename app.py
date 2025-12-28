@@ -12,8 +12,8 @@ import uuid
 import json
 
 app = Flask(__name__)
-app.secret_key = "food_freshness_secret_key_2024"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+app.secret_key = os.environ.get('SECRET_KEY', 'food_freshness_secret_key_2024')
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
@@ -329,25 +329,15 @@ def logout():
     logout_user()
     return redirect("/")
 
+# Initialize database
+with app.app_context():
+    db.create_all()
+    
+    if not User.query.filter_by(username="admin").first():
+        admin = User(username="admin", email="admin@example.com", password="password")
+        db.session.add(admin)
+        db.session.commit()
+
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-        
-        if not User.query.filter_by(username="admin").first():
-            admin = User(username="admin", email="admin@example.com", password="password")
-            db.session.add(admin)
-            db.session.commit()
-    
-    print("\n" + "="*60)
-    print("FOOD FRESHNESS CLASSIFIER - ENHANCED VERSION")
-    print("="*60)
-    print("NEW FEATURES:")
-    print("   * Batch Image Upload & Processing")
-    print("   * Analytics Dashboard with Charts")
-    print("   * Food Type Detection & Storage Tips")
-    print("   * User Registration & Profiles")
-    print("   * PDF Report Generation & Email Export")
-    print("\nAccess: http://localhost:5000")
-    print("="*60 + "\n")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
