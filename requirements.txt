@@ -1,0 +1,15 @@
+flask
+flask-login
+flask-sqlalchemy
+opencv-python
+pillow
+numpy
+werkzeug
+sqlalchemy
+jinja2
+markupsafe
+itsdangerous
+click
+blinker
+reportlab
+qrcode
