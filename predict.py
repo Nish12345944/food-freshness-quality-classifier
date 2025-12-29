@@ -66,7 +66,7 @@ def simulate_prediction(image_path):
         if image is None:
             return "Error", 0.0, "unknown"
         
-        # Convert to multiple color spaces for comprehensive analysis
+        # Convert to multiple color spaces
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -76,70 +76,75 @@ def simulate_prediction(image_path):
         h_std, s_std, v_std = np.std(hsv[:, :, 0]), np.std(hsv[:, :, 1]), np.std(hsv[:, :, 2])
         l_mean, a_mean, b_mean = np.mean(lab[:, :, 0]), np.mean(lab[:, :, 1]), np.mean(lab[:, :, 2])
         
-        # Texture analysis - rotten food has irregular texture
+        # Texture analysis
         laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
         edges = cv2.Canny(gray, 50, 150)
         edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
         
-        # Color distribution analysis
         total_pixels = hsv.shape[0] * hsv.shape[1]
         
-        # Detect brown/rotten colors (10-30° hue, moderate saturation)
-        brown_mask = (hsv[:, :, 0] >= 5) & (hsv[:, :, 0] <= 35) & (hsv[:, :, 1] > 20) & (hsv[:, :, 1] < 180)
-        brown_ratio = np.sum(brown_mask) / total_pixels
-        
-        # Detect gray/dull colors (low saturation)
-        gray_mask = hsv[:, :, 1] < 30
-        gray_ratio = np.sum(gray_mask) / total_pixels
-        
-        # Detect dark spots (mold/decay indicators)
-        dark_mask = hsv[:, :, 2] < 50
-        dark_ratio = np.sum(dark_mask) / total_pixels
-        
-        # Detect greenish mold (80-140° hue with low brightness)
-        mold_mask = (hsv[:, :, 0] >= 80) & (hsv[:, :, 0] <= 140) & (hsv[:, :, 2] < 100) & (hsv[:, :, 1] > 30)
+        # IMPROVED: Detect actual spoilage indicators
+        # 1. Mold (fuzzy white/green/black spots)
+        mold_mask = ((hsv[:, :, 0] >= 80) & (hsv[:, :, 0] <= 140) & (hsv[:, :, 1] > 30) & (hsv[:, :, 2] < 100)) | \
+                    ((hsv[:, :, 1] < 20) & (hsv[:, :, 2] < 40))  # black mold
         mold_ratio = np.sum(mold_mask) / total_pixels
         
-        # Color uniformity - fresh food has more uniform colors
-        color_uniformity = 1 / (1 + h_std + s_std)
+        # 2. Excessive browning/oxidation (very dark brown, not cooked brown)
+        rotten_brown_mask = (hsv[:, :, 0] >= 5) & (hsv[:, :, 0] <= 25) & \
+                            (hsv[:, :, 1] > 40) & (hsv[:, :, 2] < 60)  # dark brown
+        rotten_brown_ratio = np.sum(rotten_brown_mask) / total_pixels
+        
+        # 3. Sliminess indicator (very high saturation with low value)
+        slimy_mask = (hsv[:, :, 1] > 150) & (hsv[:, :, 2] < 80)
+        slimy_ratio = np.sum(slimy_mask) / total_pixels
+        
+        # 4. Dryness/shriveling (very low saturation and value)
+        dried_mask = (hsv[:, :, 1] < 20) & (hsv[:, :, 2] < 80) & (hsv[:, :, 2] > 30)
+        dried_ratio = np.sum(dried_mask) / total_pixels
         
         # Calculate freshness score (0-100)
-        freshness_score = 50  # baseline
+        freshness_score = 75  # Start with neutral-good baseline
         
-        # Penalties for rotten indicators
-        freshness_score -= brown_ratio * 80  # heavy penalty for brown
-        freshness_score -= gray_ratio * 60   # penalty for dullness
-        freshness_score -= dark_ratio * 70   # penalty for dark spots
-        freshness_score -= mold_ratio * 100  # severe penalty for mold
-        freshness_score -= (1 - color_uniformity) * 30  # penalty for non-uniformity
+        # CRITICAL PENALTIES (actual spoilage)
+        freshness_score -= mold_ratio * 150  # Severe penalty for mold
+        freshness_score -= rotten_brown_ratio * 100  # Heavy penalty for rot
+        freshness_score -= slimy_ratio * 120  # Heavy penalty for slime
+        freshness_score -= dried_ratio * 60  # Moderate penalty for drying
         
-        # Bonuses for fresh indicators
-        if s_mean > 80 and v_mean > 120:  # bright and saturated
-            freshness_score += 30
-        if h_std > 25 and s_std > 20:  # good color variance
-            freshness_score += 20
-        if edge_density < 0.15 and laplacian_var > 100:  # smooth but sharp
+        # MINOR ADJUSTMENTS (quality indicators)
+        # Brightness check (too dark might indicate old food)
+        if v_mean < 40:
+            freshness_score -= 25
+        elif v_mean > 200:  # Fresh food often has good brightness
+            freshness_score += 10
+        
+        # Saturation check (vibrant = fresh for raw foods)
+        if s_mean > 100 and v_mean > 100:  # Vibrant colors
             freshness_score += 15
         
-        # LAB color space analysis (a: green-red, b: blue-yellow)
-        if a_mean < 120 or b_mean < 120:  # dull colors in LAB
+        # Texture quality (smooth = fresh, irregular = spoiled)
+        if edge_density > 0.25:  # Too many edges = irregular texture
             freshness_score -= 20
         
-        # Clamp score between 0-100
+        # LAB color space - detect discoloration
+        if l_mean < 50:  # Very dark
+            freshness_score -= 15
+        
+        # Clamp score
         freshness_score = max(0, min(100, freshness_score))
         
         food_type = detect_food_category(image_path)
         
-        # Classification based on freshness score
-        if freshness_score >= 65:
+        # Classification with adjusted thresholds
+        if freshness_score >= 60:
             label = "Fresh"
-            confidence = np.random.uniform(freshness_score - 5, min(95, freshness_score + 5))
+            confidence = np.random.uniform(min(85, freshness_score), min(95, freshness_score + 10))
         elif freshness_score >= 35:
             label = "Okay"
-            confidence = np.random.uniform(freshness_score - 5, freshness_score + 10)
+            confidence = np.random.uniform(70, 85)
         else:
             label = "Avoid"
-            confidence = np.random.uniform(75, 95)  # high confidence for rotten
+            confidence = np.random.uniform(80, 95)
         
         return label, round(confidence, 2), food_type
             
@@ -158,45 +163,46 @@ def detect_food_category(image_path):
         s_mean = np.mean(hsv[:, :, 1])
         v_mean = np.mean(hsv[:, :, 2])
         
-        # Count dominant color pixels
         total_pixels = hsv.shape[0] * hsv.shape[1]
         
-        # Red fruits (strawberries, apples, tomatoes) - 0-10 or 170-180 hue
-        red_mask = ((hsv[:, :, 0] <= 10) | (hsv[:, :, 0] >= 170)) & (hsv[:, :, 1] > 50)
+        # Red/pink (strawberries, apples, tomatoes, meat)
+        red_mask = ((hsv[:, :, 0] <= 10) | (hsv[:, :, 0] >= 170)) & (hsv[:, :, 1] > 40)
         red_ratio = np.sum(red_mask) / total_pixels
         
-        # Orange/Yellow fruits (oranges, bananas) - 10-40 hue
-        orange_mask = (hsv[:, :, 0] > 10) & (hsv[:, :, 0] <= 40) & (hsv[:, :, 1] > 50)
+        # Orange/Yellow (oranges, bananas, cooked food)
+        orange_mask = (hsv[:, :, 0] > 10) & (hsv[:, :, 0] <= 40) & (hsv[:, :, 1] > 40)
         orange_ratio = np.sum(orange_mask) / total_pixels
         
-        # Green vegetables - 40-85 hue
+        # Green (vegetables, leafy greens)
         green_mask = (hsv[:, :, 0] > 40) & (hsv[:, :, 0] <= 85) & (hsv[:, :, 1] > 30)
         green_ratio = np.sum(green_mask) / total_pixels
         
-        # Brown/beige (meat, bread) - low saturation, moderate hue
-        brown_mask = (hsv[:, :, 0] > 5) & (hsv[:, :, 0] < 30) & (hsv[:, :, 1] < 80) & (hsv[:, :, 2] > 50)
-        brown_ratio = np.sum(brown_mask) / total_pixels
-        
-        # White/cream (dairy) - very low saturation
-        white_mask = (hsv[:, :, 1] < 30) & (hsv[:, :, 2] > 150)
+        # White/cream (dairy, paneer, rice, cooked food)
+        white_mask = (hsv[:, :, 1] < 40) & (hsv[:, :, 2] > 120)
         white_ratio = np.sum(white_mask) / total_pixels
         
-        # Classification based on dominant color
-        if red_ratio > 0.25 or orange_ratio > 0.25:
-            return "fruit"
-        elif white_ratio > 0.4:
+        # Brown/beige (meat, bread, cooked food)
+        brown_mask = (hsv[:, :, 0] > 5) & (hsv[:, :, 0] < 35) & (hsv[:, :, 1] < 100) & (hsv[:, :, 2] > 40)
+        brown_ratio = np.sum(brown_mask) / total_pixels
+        
+        # Classification logic
+        if white_ratio > 0.35:  # Dairy or cooked food with white base
+            if brown_ratio > 0.15 or orange_ratio > 0.15:  # Mixed with other colors
+                return "vegetable"  # Cooked dishes like paneer sabji
             return "dairy"
-        elif brown_ratio > 0.3 and s_mean < 60:
+        elif brown_ratio > 0.25 and s_mean < 70:  # Low saturation brown = meat
             return "meat"
-        elif green_ratio > 0.3:
+        elif green_ratio > 0.25:  # Dominant green
             return "vegetable"
-        elif s_mean > 60 and v_mean > 100:  # bright and colorful = fruit
+        elif red_ratio > 0.2 or orange_ratio > 0.2:  # Colorful
+            return "fruit"
+        elif s_mean > 60 and v_mean > 100:  # Bright and colorful
             return "fruit"
         else:
-            return "vegetable"
+            return "vegetable"  # Default for cooked/mixed foods
             
     except:
-        return "fruit"
+        return "vegetable"
 
 def get_storage_tips(food_type):
     return STORAGE_TIPS.get(food_type, STORAGE_TIPS['fruit'])
