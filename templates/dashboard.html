@@ -1,6 +1,439 @@
-<h2>Upload Food Image</h2>
-<form action="/predict" method="POST" enctype="multipart/form-data">
-  <input type="file" name="image" required>
-  <button type="submit">Predict</button>
-</form>
-<a href="/logout">Logout</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Food Freshness Classifier</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .header h1 { font-size: 2.5em; }
+        .user-info { display: flex; align-items: center; gap: 20px; }
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(76,175,80,0.4); }
+        .btn-secondary { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .btn-secondary:hover { box-shadow: 0 8px 25px rgba(33,150,243,0.4); }
+        .btn-danger { background: linear-gradient(135deg, #f44336, #d32f2f); }
+        .btn-danger:hover { box-shadow: 0 8px 25px rgba(244,67,54,0.4); }
+        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 30px; }
+        .upload-section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+        }
+        .upload-section h2 { color: #333; margin-bottom: 25px; font-size: 1.8em; }
+        .upload-area {
+            border: 3px dashed #4CAF50;
+            border-radius: 15px;
+            padding: 60px 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .upload-area:hover { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); transform: scale(1.02); }
+        .upload-area i { font-size: 4em; color: #4CAF50; margin-bottom: 20px; }
+        .upload-area p { color: #666; font-size: 1.1em; margin: 10px 0; }
+        #fileInput { display: none; }
+        .file-list {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .file-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .file-item img { width: 100%; height: 150px; object-fit: cover; }
+        .file-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quick-actions {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+        }
+        .quick-actions h2 { color: #333; margin-bottom: 25px; font-size: 1.5em; }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #333;
+            border: 2px solid transparent;
+        }
+        .action-btn:hover { transform: translateX(10px); border-color: #4CAF50; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .action-btn i { font-size: 2em; color: #4CAF50; width: 50px; text-align: center; }
+        .action-btn .action-text h3 { font-size: 1.1em; margin-bottom: 5px; }
+        .action-btn .action-text p { font-size: 0.9em; color: #666; }
+        .recent-section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+        }
+        .recent-section h2 { color: #333; margin-bottom: 25px; font-size: 1.8em; }
+        .recent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .recent-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .recent-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .recent-card.fresh { border-color: #4CAF50; }
+        .recent-card.okay { border-color: #FF9800; }
+        .recent-card.avoid { border-color: #f44336; }
+        .recent-card h3 { font-size: 1.5em; margin-bottom: 10px; }
+        .recent-card.fresh h3 { color: #4CAF50; }
+        .recent-card.okay h3 { color: #FF9800; }
+        .recent-card.avoid h3 { color: #f44336; }
+        .recent-card p { color: #666; margin: 5px 0; font-size: 0.9em; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state i { font-size: 5em; margin-bottom: 20px; opacity: 0.3; }
+        .empty-state p { font-size: 1.2em; }
+        @media (max-width: 968px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 20px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1><i class="fas fa-apple-alt"></i> Food Freshness Classifier</h1>
+                <p>Welcome, {{ current_user.username }}!</p>
+            </div>
+            <div class="user-info">
+                <a href="/profile" class="btn btn-secondary"><i class="fas fa-user"></i> Profile</a>
+                <a href="/analytics" class="btn btn-secondary"><i class="fas fa-chart-line"></i> Analytics</a>
+                <a href="/logout" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <div class="upload-section">
+                <h2><i class="fas fa-cloud-upload-alt"></i> Upload Food Images</h2>
+                <form id="uploadForm" action="/predict" method="POST" enctype="multipart/form-data">
+                    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-images"></i>
+                        <h3>Click to Upload or Drag & Drop</h3>
+                        <p>Upload up to 10 images (JPG, PNG, JPEG, WEBP)</p>
+                        <p style="font-size: 0.9em; color: #999; margin-top: 10px;">Batch processing supported</p>
+                    </div>
+                    <input type="file" id="fileInput" name="images" accept="image/*" multiple>
+                    <div id="fileList" class="file-list"></div>
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 20px; padding: 18px; font-size: 1.2em;" id="analyzeBtn" disabled>
+                        <i class="fas fa-brain"></i> Analyze Food Freshness
+                    </button>
+                </form>
+            </div>
+            
+            <div class="quick-actions">
+                <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                {% if camera_available %}
+                <a href="#" class="action-btn" onclick="openCameraModal(); return false;">
+                    <i class="fas fa-camera"></i>
+                    <div class="action-text">
+                        <h3>Camera Capture</h3>
+                        <p>Take photo directly</p>
+                    </div>
+                </a>
+                {% endif %}
+                <a href="/analytics" class="action-btn">
+                    <i class="fas fa-chart-bar"></i>
+                    <div class="action-text">
+                        <h3>View Analytics</h3>
+                        <p>See your statistics</p>
+                    </div>
+                </a>
+                <a href="/api/history" class="action-btn" onclick="viewHistory(); return false;">
+                    <i class="fas fa-history"></i>
+                    <div class="action-text">
+                        <h3>Analysis History</h3>
+                        <p>View past results</p>
+                    </div>
+                </a>
+                <a href="/profile" class="action-btn">
+                    <i class="fas fa-user-cog"></i>
+                    <div class="action-text">
+                        <h3>Profile Settings</h3>
+                        <p>Manage your account</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <div class="recent-section">
+            <h2><i class="fas fa-clock"></i> Recent Analyses</h2>
+            {% if recent_analyses %}
+            <div class="recent-grid">
+                {% for analysis in recent_analyses %}
+                <div class="recent-card {{ analysis.label.lower() }}" onclick="window.location.href='/result/{{ analysis.id }}'">
+                    <h3>{{ analysis.label }}</h3>
+                    <p><i class="fas fa-percentage"></i> {{ analysis.confidence|round(1) }}% confidence</p>
+                    <p><i class="fas fa-utensils"></i> {{ analysis.food_type|title }}</p>
+                    <p><i class="fas fa-calendar"></i> {{ analysis.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No analyses yet. Upload your first food image above!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Camera Modal -->
+    <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; max-width: 800px; width: 90%; position: relative;">
+            <button onclick="closeCameraModal()" style="position: absolute; top: 15px; right: 15px; background: #f44336; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.5em; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 style="color: #333; margin-bottom: 20px; text-align: center;"><i class="fas fa-camera"></i> Camera Capture</h2>
+            <div style="text-align: center;">
+                <video id="cameraVideo" width="640" height="480" autoplay style="border-radius: 15px; background: #000; max-width: 100%; height: auto;"></video>
+                <canvas id="cameraCanvas" width="640" height="480" style="display: none;"></canvas>
+                <div style="margin-top: 20px;">
+                    <button onclick="capturePhoto()" class="btn" style="font-size: 1.2em; padding: 15px 40px;">
+                        <i class="fas fa-camera"></i> Capture Photo
+                    </button>
+                    <button onclick="closeCameraModal()" class="btn btn-danger" style="font-size: 1.2em; padding: 15px 40px; margin-left: 10px;">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+                <p id="cameraStatus" style="margin-top: 15px; color: #666;"></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let cameraStream = null;
+        
+        // Camera functions
+        async function openCameraModal() {
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'flex';
+            
+            try {
+                const video = document.getElementById('cameraVideo');
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                video.srcObject = cameraStream;
+                document.getElementById('cameraStatus').textContent = 'Camera ready! Click "Capture Photo" when ready.';
+                document.getElementById('cameraStatus').style.color = '#4CAF50';
+            } catch (err) {
+                console.error('Camera error:', err);
+                document.getElementById('cameraStatus').textContent = 'Error: Could not access camera. Please check permissions.';
+                document.getElementById('cameraStatus').style.color = '#f44336';
+            }
+        }
+        
+        function closeCameraModal() {
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'none';
+            
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+        
+        async function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            const context = canvas.getContext('2d');
+            
+            // Draw video frame to canvas
+            context.drawImage(video, 0, 0, 640, 480);
+            
+            // Convert canvas to blob
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('camera_image', blob, 'camera_capture.jpg');
+                
+                document.getElementById('cameraStatus').textContent = 'Processing image...';
+                document.getElementById('cameraStatus').style.color = '#FF9800';
+                
+                try {
+                    // Save the image and analyze
+                    const response = await fetch('/capture-camera', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        // Redirect to result page
+                        window.location.href = response.url;
+                    } else {
+                        throw new Error('Failed to process image');
+                    }
+                } catch (err) {
+                    console.error('Capture error:', err);
+                    document.getElementById('cameraStatus').textContent = 'Error processing image. Please try again.';
+                    document.getElementById('cameraStatus').style.color = '#f44336';
+                }
+            }, 'image/jpeg', 0.95);
+        }
+        
+        // File upload functions
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        let selectedFiles = [];
+        
+        fileInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files).slice(0, 10);
+            selectedFiles = files;
+            displayFiles();
+        });
+        
+        function displayFiles() {
+            fileList.innerHTML = '';
+            if (selectedFiles.length === 0) {
+                analyzeBtn.disabled = true;
+                return;
+            }
+            analyzeBtn.disabled = false;
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <button class="remove-btn" onclick="removeFile(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    fileList.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            fileInput.files = dt.files;
+            displayFiles();
+        }
+        
+        function captureFromCamera() {
+            alert('Camera capture feature - Please implement camera.py functionality');
+        }
+        
+        function viewHistory() {
+            window.location.href = '/analytics';
+        }
+        
+        // Drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.style.borderColor = '#45a049';
+                uploadArea.style.background = 'linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%)';
+            });
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.style.borderColor = '#4CAF50';
+                uploadArea.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)';
+            });
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            const files = Array.from(dt.files).slice(0, 10);
+            selectedFiles = files;
+            const newDt = new DataTransfer();
+            files.forEach(file => newDt.items.add(file));
+            fileInput.files = newDt.files;
+            displayFiles();
+        });
+    </script>
+</body>
+</html>

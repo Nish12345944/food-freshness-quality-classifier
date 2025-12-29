@@ -6,10 +6,14 @@ import os
 LABELS = ["Fresh", "Okay", "Avoid"]
 
 FOOD_TYPES = {
-    'fruit': ['apple', 'banana', 'orange', 'strawberry', 'grape', 'watermelon'],
-    'vegetable': ['tomato', 'carrot', 'lettuce', 'broccoli', 'cucumber', 'pepper'],
-    'meat': ['chicken', 'beef', 'pork', 'fish'],
-    'dairy': ['milk', 'cheese', 'yogurt', 'butter']
+    'fruit': ['apple', 'banana', 'orange', 'strawberry', 'grape', 'watermelon', 'mango', 'pineapple'],
+    'vegetable': ['tomato', 'carrot', 'lettuce', 'broccoli', 'cucumber', 'pepper', 'spinach', 'cabbage'],
+    'meat': ['chicken', 'beef', 'pork', 'fish', 'mutton', 'lamb'],
+    'dairy': ['milk', 'cheese', 'yogurt', 'butter', 'paneer', 'cream'],
+    'cooked_food': ['curry', 'sabji', 'rice', 'pasta', 'soup', 'stew', 'gravy'],
+    'bread': ['bread', 'roti', 'naan', 'bun', 'toast', 'bagel'],
+    'seafood': ['fish', 'shrimp', 'crab', 'lobster', 'prawns'],
+    'eggs': ['egg', 'omelette', 'boiled_egg']
 }
 
 STORAGE_TIPS = {
@@ -36,6 +40,30 @@ STORAGE_TIPS = {
         'humidity': '80-85%',
         'shelf_life': '5-14 days',
         'tips': ['Keep refrigerated at all times', 'Store in original container', 'Check expiration dates']
+    },
+    'cooked_food': {
+        'temperature': '35-40°F (2-4°C)',
+        'humidity': '70-80%',
+        'shelf_life': '2-4 days',
+        'tips': ['Refrigerate within 2 hours of cooking', 'Store in airtight containers', 'Reheat thoroughly before consuming', 'Discard if sour smell or mold appears']
+    },
+    'bread': {
+        'temperature': '68-72°F (20-22°C)',
+        'humidity': '60-70%',
+        'shelf_life': '3-7 days',
+        'tips': ['Store in cool, dry place', 'Keep in bread box or sealed bag', 'Freeze for longer storage', 'Check for mold before eating']
+    },
+    'seafood': {
+        'temperature': '32-38°F (0-3°C)',
+        'humidity': '95-100%',
+        'shelf_life': '1-2 days',
+        'tips': ['Store on ice in refrigerator', 'Use immediately or freeze', 'Check for fishy odor', 'Keep separate from other foods']
+    },
+    'eggs': {
+        'temperature': '35-40°F (2-4°C)',
+        'humidity': '70-80%',
+        'shelf_life': '3-5 weeks',
+        'tips': ['Store in refrigerator', 'Keep in original carton', 'Check expiration date', 'Discard if cracked or smells bad']
     }
 }
 
@@ -66,85 +94,76 @@ def simulate_prediction(image_path):
         if image is None:
             return "Error", 0.0, "unknown"
         
-        # Convert to multiple color spaces
+        # Resize for faster processing (max 640px)
+        height, width = image.shape[:2]
+        if width > 640 or height > 640:
+            scale = 640 / max(width, height)
+            image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        
+        # Convert to HSV only (faster)
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # Extract color statistics
-        h_mean, s_mean, v_mean = np.mean(hsv[:, :, 0]), np.mean(hsv[:, :, 1]), np.mean(hsv[:, :, 2])
-        h_std, s_std, v_std = np.std(hsv[:, :, 0]), np.std(hsv[:, :, 1]), np.std(hsv[:, :, 2])
-        l_mean, a_mean, b_mean = np.mean(lab[:, :, 0]), np.mean(lab[:, :, 1]), np.mean(lab[:, :, 2])
-        
-        # Texture analysis
-        laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
-        edges = cv2.Canny(gray, 50, 150)
-        edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
+        # Quick statistics
+        h_mean = np.mean(hsv[:, :, 0])
+        s_mean = np.mean(hsv[:, :, 1])
+        v_mean = np.mean(hsv[:, :, 2])
         
         total_pixels = hsv.shape[0] * hsv.shape[1]
         
-        # IMPROVED: Detect actual spoilage indicators
-        # 1. Mold (fuzzy white/green/black spots)
+        # Simplified spoilage detection (only critical ones)
+        # 1. Mold (green/black spots)
         mold_mask = ((hsv[:, :, 0] >= 80) & (hsv[:, :, 0] <= 140) & (hsv[:, :, 1] > 30) & (hsv[:, :, 2] < 100)) | \
-                    ((hsv[:, :, 1] < 20) & (hsv[:, :, 2] < 40))  # black mold
+                    ((hsv[:, :, 1] < 20) & (hsv[:, :, 2] < 40))
         mold_ratio = np.sum(mold_mask) / total_pixels
         
-        # 2. Excessive browning/oxidation (very dark brown, not cooked brown)
-        rotten_brown_mask = (hsv[:, :, 0] >= 5) & (hsv[:, :, 0] <= 25) & \
-                            (hsv[:, :, 1] > 40) & (hsv[:, :, 2] < 60)  # dark brown
-        rotten_brown_ratio = np.sum(rotten_brown_mask) / total_pixels
+        # 2. Dark brown rot
+        rotten_mask = (hsv[:, :, 0] >= 5) & (hsv[:, :, 0] <= 25) & (hsv[:, :, 1] > 40) & (hsv[:, :, 2] < 60)
+        rotten_ratio = np.sum(rotten_mask) / total_pixels
         
-        # 3. Sliminess indicator (very high saturation with low value)
-        slimy_mask = (hsv[:, :, 1] > 150) & (hsv[:, :, 2] < 80)
-        slimy_ratio = np.sum(slimy_mask) / total_pixels
+        # 3. Gray discoloration (cooked food)
+        gray_mask = (hsv[:, :, 1] < 30) & (hsv[:, :, 2] > 40) & (hsv[:, :, 2] < 120)
+        gray_ratio = np.sum(gray_mask) / total_pixels
         
-        # 4. Dryness/shriveling (very low saturation and value)
-        dried_mask = (hsv[:, :, 1] < 20) & (hsv[:, :, 2] < 80) & (hsv[:, :, 2] > 30)
-        dried_ratio = np.sum(dried_mask) / total_pixels
-        
-        # Calculate freshness score (0-100)
-        freshness_score = 75  # Start with neutral-good baseline
-        
-        # CRITICAL PENALTIES (actual spoilage)
-        freshness_score -= mold_ratio * 150  # Severe penalty for mold
-        freshness_score -= rotten_brown_ratio * 100  # Heavy penalty for rot
-        freshness_score -= slimy_ratio * 120  # Heavy penalty for slime
-        freshness_score -= dried_ratio * 60  # Moderate penalty for drying
-        
-        # MINOR ADJUSTMENTS (quality indicators)
-        # Brightness check (too dark might indicate old food)
-        if v_mean < 40:
-            freshness_score -= 25
-        elif v_mean > 200:  # Fresh food often has good brightness
+        # Calculate freshness score
+        freshness_score = 70
+        freshness_score -= mold_ratio * 200
+        freshness_score -= rotten_ratio * 120
+        if gray_ratio > 0.3:
+            freshness_score -= 50
+        if v_mean < 35:
+            freshness_score -= 30
+        elif v_mean > 200:
+            freshness_score += 5
+        if s_mean > 100 and v_mean > 100:
             freshness_score += 10
         
-        # Saturation check (vibrant = fresh for raw foods)
-        if s_mean > 100 and v_mean > 100:  # Vibrant colors
-            freshness_score += 15
-        
-        # Texture quality (smooth = fresh, irregular = spoiled)
-        if edge_density > 0.25:  # Too many edges = irregular texture
-            freshness_score -= 20
-        
-        # LAB color space - detect discoloration
-        if l_mean < 50:  # Very dark
-            freshness_score -= 15
-        
-        # Clamp score
         freshness_score = max(0, min(100, freshness_score))
         
-        food_type = detect_food_category(image_path)
+        # Quick food type detection
+        food_type = detect_food_category_fast(hsv, s_mean, v_mean)
         
-        # Classification with adjusted thresholds
-        if freshness_score >= 60:
-            label = "Fresh"
-            confidence = np.random.uniform(min(85, freshness_score), min(95, freshness_score + 10))
-        elif freshness_score >= 35:
-            label = "Okay"
-            confidence = np.random.uniform(70, 85)
+        # Classification
+        if food_type == 'cooked_food':
+            if freshness_score >= 65:
+                label = "Fresh"
+                confidence = np.random.uniform(82, 92)
+            elif freshness_score >= 40:
+                label = "Okay"
+                confidence = np.random.uniform(72, 85)
+            else:
+                label = "Avoid"
+                confidence = np.random.uniform(82, 95)
         else:
-            label = "Avoid"
-            confidence = np.random.uniform(80, 95)
+            if freshness_score >= 60:
+                label = "Fresh"
+                confidence = np.random.uniform(85, 95)
+            elif freshness_score >= 35:
+                label = "Okay"
+                confidence = np.random.uniform(70, 85)
+            else:
+                label = "Avoid"
+                confidence = np.random.uniform(80, 95)
         
         return label, round(confidence, 2), food_type
             
@@ -152,57 +171,54 @@ def simulate_prediction(image_path):
         print(f"Simulation error: {str(e)}")
         return "Okay", 70.0, "fruit"
 
+def detect_food_category_fast(hsv, s_mean, v_mean):
+    """Fast food category detection using pre-computed HSV"""
+    try:
+        total_pixels = hsv.shape[0] * hsv.shape[1]
+        
+        # Quick color ratios
+        white_ratio = np.sum((hsv[:, :, 1] < 40) & (hsv[:, :, 2] > 120)) / total_pixels
+        green_ratio = np.sum((hsv[:, :, 0] > 40) & (hsv[:, :, 0] <= 85) & (hsv[:, :, 1] > 30)) / total_pixels
+        orange_ratio = np.sum((hsv[:, :, 0] > 10) & (hsv[:, :, 0] <= 40) & (hsv[:, :, 1] > 40)) / total_pixels
+        brown_ratio = np.sum((hsv[:, :, 0] > 5) & (hsv[:, :, 0] < 35) & (hsv[:, :, 1] < 100) & (hsv[:, :, 2] > 40)) / total_pixels
+        
+        # Quick classification
+        if white_ratio > 0.25 and (orange_ratio > 0.15 or green_ratio > 0.10):
+            return "cooked_food"
+        if white_ratio > 0.50:
+            return "dairy"
+        if brown_ratio > 0.30 and s_mean < 50:
+            return "bread"
+        if green_ratio > 0.25:
+            return "vegetable"
+        if s_mean > 60 and v_mean > 100:
+            return "fruit"
+        return "cooked_food"
+    except:
+        return "fruit"
+
 def detect_food_category(image_path):
+    """Detailed food category detection (fallback)"""
     try:
         image = cv2.imread(image_path)
         if image is None:
             return "fruit"
         
+        # Resize for speed
+        height, width = image.shape[:2]
+        if width > 640 or height > 640:
+            scale = 640 / max(width, height)
+            image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        h_mean = np.mean(hsv[:, :, 0])
         s_mean = np.mean(hsv[:, :, 1])
         v_mean = np.mean(hsv[:, :, 2])
         
-        total_pixels = hsv.shape[0] * hsv.shape[1]
-        
-        # Red/pink (strawberries, apples, tomatoes, meat)
-        red_mask = ((hsv[:, :, 0] <= 10) | (hsv[:, :, 0] >= 170)) & (hsv[:, :, 1] > 40)
-        red_ratio = np.sum(red_mask) / total_pixels
-        
-        # Orange/Yellow (oranges, bananas, cooked food)
-        orange_mask = (hsv[:, :, 0] > 10) & (hsv[:, :, 0] <= 40) & (hsv[:, :, 1] > 40)
-        orange_ratio = np.sum(orange_mask) / total_pixels
-        
-        # Green (vegetables, leafy greens)
-        green_mask = (hsv[:, :, 0] > 40) & (hsv[:, :, 0] <= 85) & (hsv[:, :, 1] > 30)
-        green_ratio = np.sum(green_mask) / total_pixels
-        
-        # White/cream (dairy, paneer, rice, cooked food)
-        white_mask = (hsv[:, :, 1] < 40) & (hsv[:, :, 2] > 120)
-        white_ratio = np.sum(white_mask) / total_pixels
-        
-        # Brown/beige (meat, bread, cooked food)
-        brown_mask = (hsv[:, :, 0] > 5) & (hsv[:, :, 0] < 35) & (hsv[:, :, 1] < 100) & (hsv[:, :, 2] > 40)
-        brown_ratio = np.sum(brown_mask) / total_pixels
-        
-        # Classification logic
-        if white_ratio > 0.35:  # Dairy or cooked food with white base
-            if brown_ratio > 0.15 or orange_ratio > 0.15:  # Mixed with other colors
-                return "vegetable"  # Cooked dishes like paneer sabji
-            return "dairy"
-        elif brown_ratio > 0.25 and s_mean < 70:  # Low saturation brown = meat
-            return "meat"
-        elif green_ratio > 0.25:  # Dominant green
-            return "vegetable"
-        elif red_ratio > 0.2 or orange_ratio > 0.2:  # Colorful
-            return "fruit"
-        elif s_mean > 60 and v_mean > 100:  # Bright and colorful
-            return "fruit"
-        else:
-            return "vegetable"  # Default for cooked/mixed foods
+        return detect_food_category_fast(hsv, s_mean, v_mean)
             
-    except:
-        return "vegetable"
+    except Exception as e:
+        print(f"Food category detection error: {str(e)}")
+        return "cooked_food"
 
 def get_storage_tips(food_type):
     return STORAGE_TIPS.get(food_type, STORAGE_TIPS['fruit'])

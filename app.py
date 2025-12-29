@@ -323,6 +323,51 @@ def api_history():
         'timestamp': a.timestamp.strftime('%Y-%m-%d %H:%M')
     } for a in analyses])
 
+@app.route("/capture-camera", methods=["POST"])
+@login_required
+def capture_camera():
+    try:
+        # Check if image is from browser camera
+        if 'camera_image' in request.files:
+            file = request.files['camera_image']
+            if file:
+                upload_path = os.path.join("static", "uploads")
+                os.makedirs(upload_path, exist_ok=True)
+                
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"camera_{timestamp}.jpg"
+                filepath = os.path.join(upload_path, filename)
+                file.save(filepath)
+        else:
+            # Fallback to OpenCV camera capture
+            from camera import capture_image
+            upload_path = os.path.join("static", "uploads")
+            os.makedirs(upload_path, exist_ok=True)
+            filepath, filename = capture_image(upload_path)
+        
+        label, confidence, food_type = predict_image(filepath)
+        quality_metrics = analyze_image_quality(filepath)
+        
+        analysis = Analysis(
+            user_id=current_user.id,
+            image_filename=filename,
+            label=label,
+            confidence=confidence,
+            food_type=food_type,
+            quality_score=quality_metrics.get('blur_score', 0),
+            resolution=quality_metrics.get('resolution', 'Unknown'),
+            blur_score=quality_metrics.get('blur_score', 0)
+        )
+        db.session.add(analysis)
+        db.session.commit()
+        
+        return redirect(f"/result/{analysis.id}")
+        
+    except Exception as e:
+        print(f"Camera capture error: {str(e)}")
+        flash(f"Camera error: {str(e)}", "error")
+        return redirect("/dashboard")
+
 @app.route("/logout")
 @login_required
 def logout():
@@ -339,5 +384,5 @@ with app.app_context():
         db.session.commit()
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(host='0.0.0.0', port=port, debug=True)
