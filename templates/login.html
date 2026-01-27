@@ -20,9 +20,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
         
         body::before, body::after {
@@ -297,12 +298,6 @@
             padding: 20px;
             margin-top: 25px;
             border-left: 4px solid #4CAF50;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
-            50% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
         }
         
         .demo-info h4 {
@@ -317,6 +312,111 @@
             color: #666;
             font-size: 0.9em;
             margin-bottom: 5px;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .stat-item {
+            text-align: center;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stat-item:nth-child(2) { animation-delay: 0.2s; }
+        .stat-item:nth-child(3) { animation-delay: 0.4s; }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #4CAF50;
+            text-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+        }
+        
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            color: #999;
+            font-size: 0.85em;
+        }
+        
+        .floating-icons {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .floating-icon {
+            position: absolute;
+            font-size: 2em;
+            opacity: 0.15;
+            animation: floatIcon 20s infinite ease-in-out;
+        }
+        
+        @keyframes floatIcon {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(30px, -30px) rotate(90deg); }
+            50% { transform: translate(-20px, 20px) rotate(180deg); }
+            75% { transform: translate(20px, 30px) rotate(270deg); }
+        }
+        
+        .floating-icon:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+        .floating-icon:nth-child(2) { top: 20%; right: 15%; animation-delay: 3s; }
+        .floating-icon:nth-child(3) { bottom: 15%; left: 20%; animation-delay: 6s; }
+        .floating-icon:nth-child(4) { bottom: 25%; right: 10%; animation-delay: 9s; }
+        .floating-icon:nth-child(5) { top: 50%; left: 5%; animation-delay: 12s; }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-top: 15px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.6); }
         }
         
         .error-message {
@@ -412,6 +512,18 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="floating-icons">
+                <div class="floating-icon">🍎</div>
+                <div class="floating-icon">🥕</div>
+                <div class="floating-icon">🍞</div>
+                <div class="floating-icon">🥛</div>
+                <div class="floating-icon">🍛</div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <span class="badge">✨ NEW: Camera Capture Feature</span>
+            </div>
         </div>
         
         <div class="login-container">
@@ -448,6 +560,17 @@
                         <span><i class="fas fa-sign-in-alt"></i> Login to Dashboard</span>
                     </button>
                 </form>
+                
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                
+                <div style="text-align: center;">
+                    <p style="color: #666; margin-bottom: 15px;">Don't have an account?</p>
+                    <a href="/register" style="display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)'">
+                        <i class="fas fa-user-plus"></i> Create New Account
+                    </a>
+                </div>
                 
                 <div class="demo-info">
                     <h4><i class="fas fa-info-circle"></i> Demo Credentials</h4>
