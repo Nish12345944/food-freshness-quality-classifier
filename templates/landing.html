@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshAI - AI-Powered Food Freshness Detection</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e5e7eb;
+            z-index: 1000;
+            padding: 1rem 0;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover { color: #10b981; }
+        
+        .btn-primary {
+            background: #10b981;
+            color: white;
+            padding: 0.625rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: #10b981;
+            padding: 0.625rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 2px solid #10b981;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: #10b981;
+            color: white;
+        }
+        
+        /* Hero Section */
+        .hero {
+            margin-top: 80px;
+            padding: 6rem 2rem 4rem;
+            text-align: center;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        
+        .hero-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .hero .subtitle {
+            font-size: 1.25rem;
+            color: #6b7280;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+        
+        .demo-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+        
+        /* Features */
+        .features {
+            padding: 5rem 2rem;
+            background: white;
+        }
+        
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            color: #1a1a1a;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            border-color: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+            transform: translateY(-4px);
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: #d1fae5;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            color: #10b981;
+            font-size: 1.5rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: #1a1a1a;
+        }
+        
+        .feature-card p {
+            color: #6b7280;
+            line-height: 1.6;
+        }
+        
+        /* How It Works */
+        .how-it-works {
+            padding: 5rem 2rem;
+            background: #f9fafb;
+        }
+        
+        .steps {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+        
+        .step {
+            text-align: center;
+        }
+        
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 auto 1rem;
+        }
+        
+        .step h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: #1a1a1a;
+        }
+        
+        .step p {
+            color: #6b7280;
+        }
+        
+        /* Footer */
+        footer {
+            background: #1a1a1a;
+            color: #9ca3af;
+            padding: 3rem 2rem 2rem;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section h4 {
+            color: white;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        
+        .footer-section p,
+        .footer-section a {
+            color: #9ca3af;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .footer-section a:hover {
+            color: #10b981;
+        }
+        
+        .tech-stack {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .tech-badge {
+            background: #374151;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #d1d5db;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid #374151;
+            padding-top: 2rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .nav-links { display: none; }
+            .cta-buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-leaf"></i>
+                FreshAI
+            </div>
+            <div class="nav-links">
+                <a href="#home">Home</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="/demo">Demo</a>
+                <a href="https://github.com/Nish12345944/food-freshness-quality-classifier" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+                <a href="/auth/login" class="btn-secondary">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-container">
+            <div class="demo-badge">
+                <i class="fas fa-sparkles"></i> AI-Powered Food Analysis
+            </div>
+            <h1>Detect Food Freshness Instantly</h1>
+            <p class="subtitle">
+                Advanced AI technology to analyze food quality in seconds. Upload an image and get instant freshness predictions with 87% accuracy.
+            </p>
+            <div class="cta-buttons">
+                <a href="/demo" class="btn-primary" style="font-size: 1.125rem; padding: 0.875rem 2rem;">
+                    <i class="fas fa-camera"></i> Try Demo
+                </a>
+                <a href="#how-it-works" class="btn-secondary" style="font-size: 1.125rem; padding: 0.875rem 2rem;">
+                    Learn More
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+        <div class="features-container">
+            <h2 class="section-title">Why Choose FreshAI?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>AI-Powered Analysis</h3>
+                    <p>Advanced CNN model trained on 2,500+ images for accurate freshness detection across 8 food categories.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3>Instant Results</h3>
+                    <p>Get freshness predictions in under 2 seconds with detailed confidence scores and recommendations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <h3>Multiple Upload Options</h3>
+                    <p>Upload images, use your camera, or analyze multiple items at once with batch processing.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Track Your History</h3>
+                    <p>Monitor your food analysis history with detailed analytics and insights over time.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h3>Storage Tips</h3>
+                    <p>Receive personalized storage recommendations based on food type and freshness level.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Secure & Private</h3>
+                    <p>Your data is processed securely with privacy-first architecture and encrypted storage.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="features-container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Upload Image</h3>
+                    <p>Take a photo or upload an image of your food item</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>AI Analysis</h3>
+                    <p>Our CNN model analyzes color, texture, and patterns</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Get Results</h3>
+                    <p>Receive freshness status, confidence score, and storage tips</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h4>About FreshAI</h4>
+                    <p>An AI-powered food freshness detection system using deep learning to help reduce food waste and improve food safety.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Tech Stack</h4>
+                    <div class="tech-stack">
+                        <span class="tech-badge">Python</span>
+                        <span class="tech-badge">Flask</span>
+                        <span class="tech-badge">TensorFlow</span>
+                        <span class="tech-badge">OpenCV</span>
+                        <span class="tech-badge">SQLite</span>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <a href="/demo">Try Demo</a>
+                    <a href="/auth/login">Login</a>
+                    <a href="https://github.com/Nish12345944/food-freshness-quality-classifier" target="_blank">GitHub Repository</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Disclaimer</h4>
+                    <p style="font-size: 0.75rem;">This is an AI prediction tool for educational purposes. Always use your judgment when assessing food safety.</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 FreshAI. Built with ❤️ for reducing food waste.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

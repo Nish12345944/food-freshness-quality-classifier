@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_register %}Sign Up{% else %}Login{% endif %} - FreshAI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .auth-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            max-width: 450px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .auth-header {
+            text-align: center;
+            padding: 2.5rem 2rem 1.5rem;
+        }
+        
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .auth-header h2 {
+            font-size: 1.75rem;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .auth-header p {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+        
+        .auth-form {
+            padding: 0 2rem 2.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        .btn-submit {
+            width: 100%;
+            background: #10b981;
+            color: white;
+            padding: 0.875rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 0.5rem;
+        }
+        
+        .btn-submit:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+        
+        .auth-footer {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .auth-footer a {
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .back-link a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .back-link a:hover {
+            color: #10b981;
+        }
+        
+        .error-message {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            border-left: 3px solid #dc2626;
+        }
+        
+        .success-message {
+            background: #f0fdf4;
+            color: #065f46;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            border-left: 3px solid #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="logo">
+                <i class="fas fa-leaf"></i>
+                FreshAI
+            </div>
+            <h2>{% if is_register %}Create Account{% else %}Welcome Back{% endif %}</h2>
+            <p>{% if is_register %}Sign up to start analyzing food freshness{% else %}Login to access your dashboard{% endif %}</p>
+        </div>
+        
+        <div class="auth-form">
+            {% if error %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+            {% endif %}
+            
+            {% if success %}
+            <div class="success-message">
+                <i class="fas fa-check-circle"></i> {{ success }}
+            </div>
+            {% endif %}
+            
+            <form method="POST">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required placeholder="Enter your username">
+                </div>
+                
+                {% if is_register %}
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required placeholder="Enter your email">
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                </div>
+                
+                <button type="submit" class="btn-submit">
+                    {% if is_register %}
+                    <i class="fas fa-user-plus"></i> Create Account
+                    {% else %}
+                    <i class="fas fa-sign-in-alt"></i> Login
+                    {% endif %}
+                </button>
+            </form>
+            
+            <div class="divider">
+                <span>OR</span>
+            </div>
+            
+            <div class="auth-footer">
+                {% if is_register %}
+                Already have an account? <a href="/auth/login">Login</a>
+                {% else %}
+                Don't have an account? <a href="/auth/register">Sign Up</a>
+                {% endif %}
+            </div>
+            
+            <div class="back-link">
+                <a href="/">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

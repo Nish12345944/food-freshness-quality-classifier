@@ -24,6 +24,8 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message = 'Please login to access this page.'
+login_manager.login_message_category = 'info'
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -36,7 +38,15 @@ def generate_unique_filename(filename):
     name, ext = os.path.splitext(secure_filename(filename))
     return f"{name}_{uuid.uuid4().hex[:8]}{ext}"
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
+def landing():
+    return render_template("landing.html")
+
+@app.route("/demo")
+def demo():
+    return render_template("demo.html")
+
+@app.route("/auth/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form.get("username")
@@ -50,11 +60,11 @@ def login():
             login_user(user)
             return redirect("/dashboard")
         else:
-            return render_template("login.html", error="Invalid username or password.")
+            return render_template("auth.html", error="Invalid username or password.", is_register=False)
     
-    return render_template("login.html")
+    return render_template("auth.html", is_register=False)
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/auth/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         username = request.form.get("username")
@@ -62,19 +72,18 @@ def register():
         password = request.form.get("password")
         
         if User.query.filter_by(username=username).first():
-            return render_template("register.html", error="Username already exists.")
+            return render_template("auth.html", error="Username already exists.", is_register=True)
         
         if User.query.filter_by(email=email).first():
-            return render_template("register.html", error="Email already registered.")
+            return render_template("auth.html", error="Email already registered.", is_register=True)
         
         new_user = User(username=username, email=email, password=password)
         db.session.add(new_user)
         db.session.commit()
         
-        flash("Registration successful! Please login.", "success")
-        return redirect("/")
+        return render_template("auth.html", success="Registration successful! Please login.", is_register=False)
     
-    return render_template("register.html")
+    return render_template("auth.html", is_register=True)
 
 @app.route("/dashboard")
 @login_required
