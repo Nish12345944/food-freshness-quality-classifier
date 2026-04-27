@@ -212,10 +212,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-**Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
+**Nishchal Vyas**
+- GitHub: [Nish12345944](https://github.com/Nish12345944)
+- LinkedIn: [Nishchal Vyas](https://www.linkedin.com/in/nishchal-vyas944/)
+- Email: nishchalv99@gmail.com
 
 ## 🙏 Acknowledgments
 
