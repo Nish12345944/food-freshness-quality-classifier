@@ -55,13 +55,14 @@ def health():
 @limiter.limit("30 per hour;5 per minute")
 def predict():
     """Predict freshness for a single uploaded image."""
-    svc = get_prediction_service()
-    if not svc.is_loaded:
-        return _err("Model is not loaded.", 503)
-
+    # Validate input first so malformed requests always get 400
     file = request.files.get("image")
     if not file or file.filename == "":
         return _err("No image provided. Send a multipart/form-data 'image' field.", 400)
+
+    svc = get_prediction_service()
+    if not svc.is_loaded:
+        return _err("Model is not loaded.", 503)
 
     val = validate_and_save(file, current_app.config["UPLOAD_FOLDER"])
     if not val.valid:
@@ -128,13 +129,13 @@ def predict():
 @limiter.limit("10 per hour;2 per minute")
 def predict_batch():
     """Predict freshness for multiple images in one request."""
-    svc = get_prediction_service()
-    if not svc.is_loaded:
-        return _err("Model is not loaded.", 503)
-
     files = request.files.getlist("images")
     if not files or files[0].filename == "":
         return _err("No images provided. Send a multipart/form-data 'images' field.", 400)
+
+    svc = get_prediction_service()
+    if not svc.is_loaded:
+        return _err("Model is not loaded.", 503)
 
     max_batch = current_app.config["MAX_BATCH_SIZE"]
     results = []

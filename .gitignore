@@ -1,28 +1,61 @@
-venv/
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.py[cod]
+*$py.class
 *.so
-*.egg
-*.egg-info/
-dist/
-build/
-.env
-.venv
+
+# Virtual environments
+.venv/
+venv/
 env/
 ENV/
-instance/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Databases
 *.db
-static/uploads/*
-!static/uploads/.gitkeep
-static/reports/*
-!static/reports/.gitkeep
+*.sqlite
+*.sqlite3
+instance/
+
+# User data / generated content
+uploads/
+reports/
+static/uploads/
+static/reports/
+static/gradcam/
 static/profiles/*
-!static/profiles/.gitkeep
-.DS_Store
+!static/profiles/default.png
+
+# Model artifacts (train locally; do not commit large binaries)
+models/*.pt
+models/*.pth
+*.onnx
+*.h5
+
+# Testing / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# IDE / OS
 .vscode/
 .idea/
-*.whl
-"__pycache__/" ; git add -A 
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Note: requirements.txt, Procfile, render.yaml, build.sh, runtime.txt,
+# wsgi.py and the app/ package are required for deployment — never ignore them.

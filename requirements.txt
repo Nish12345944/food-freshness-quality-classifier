@@ -1,16 +1,25 @@
-flask
-flask-login
-flask-sqlalchemy
-flask-limiter
-opencv-python-headless
-pillow
-numpy
-werkzeug
-sqlalchemy
-reportlab
-qrcode
-gunicorn
-torch
-torchvision
-scikit-learn
-matplotlib
+# FoodFresh AI — production dependencies
+# Tested on Python 3.11 / Linux (Render)
+
+# Web framework
+Flask>=3.0,<4
+flask-login>=0.6
+flask-sqlalchemy>=3.1
+flask-limiter>=3.5
+Werkzeug>=3.0
+SQLAlchemy>=2.0
+gunicorn>=21.2
+
+# Computer vision / ML inference
+torch>=2.1
+torchvision>=0.16
+opencv-python-headless>=4.8
+Pillow>=10.0
+numpy>=1.24,<2
+
+# Reports
+reportlab>=4.0
+qrcode>=7.4
+
+# PostgreSQL driver (used automatically when DATABASE_URL is set)
+psycopg2-binary>=2.9

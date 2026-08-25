@@ -39,4 +39,4 @@ class Config:
     SENDER_EMAIL: str = os.environ.get("SENDER_EMAIL", "")
     SENDER_PASSWORD: str = os.environ.get("SENDER_PASSWORD", "")
 
-    APP_VERSION: str = "1.0.0"
+    APP_VERSION: str = os.environ.get("APP_VERSION", "1.0.0")

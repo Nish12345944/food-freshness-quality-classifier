@@ -1,0 +1,53 @@
+name: Deploy Check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install production dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify app factory imports and app starts
+        env:
+          SECRET_KEY: ci-check-secret
+        run: |
+          python - <<'PY'
+          from app import create_app
+          from app.config import Config
+          application = create_app(Config())
+          rules = sorted(str(r) for r in application.url_map.iter_rules())
+          required = ["/", "/health", "/api/v1/health", "/auth/login",
+                      "/auth/register", "/dashboard", "/predict", "/history"]
+          missing = [r for r in required if r not in rules]
+          assert not missing, f"Missing routes: {missing}"
+          print("App boots OK — all required routes registered")
+          PY
+
+      - name: Verify deployment files are consistent
+        run: |
+          grep -q "gunicorn wsgi:app" Procfile || { echo "Procfile must use gunicorn wsgi:app"; exit 1; }
+          grep -q "healthCheckPath: /health" render.yaml || { echo "render.yaml missing /health check"; exit 1; }
+          grep -q "requirements.txt" build.sh || { echo "build.sh must install requirements"; exit 1; }
+          echo "Deployment configuration consistent"
+
+      - name: Check no secrets committed
+        run: |
+          ! grep -rInE "(SENDER_PASSWORD|SECRET_KEY)\s*=\s*['\"][A-Za-z0-9]{8,}" app/ training/ .env.example \
+            || { echo "Possible hard-coded secret found"; exit 1; }
+          test ! -f instance/users.db || { echo "instance/users.db must not exist"; exit 1; }
+          echo "No secrets or databases committed"

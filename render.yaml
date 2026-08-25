@@ -1,12 +1,20 @@
 services:
   - type: web
-    name: food-freshness-classifier
+    name: foodfresh-ai
     runtime: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn wsgi:app"
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120"
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.9
       - key: SECRET_KEY
         generateValue: true
-    healthCheckPath: /health
+      - key: APP_VERSION
+        value: 1.0.0
+      # Set these in the Render dashboard (do not commit real values):
+      #   DATABASE_URL       — Render PostgreSQL connection string (optional; SQLite fallback)
+      #   MODEL_PATH         — path to trained model artifact (default models/food_freshness.pt)
+      #   MODEL_VERSION      — version label recorded with each prediction
+      #   SMTP_SERVER / SMTP_PORT / SENDER_EMAIL / SENDER_PASSWORD — email reports (optional)
