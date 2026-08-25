@@ -1,444 +1,284 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo - FreshAI</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f9fafb;
-            color: #1a1a1a;
-        }
-        
-        nav {
-            background: white;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 1rem 0;
-        }
-        
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #10b981;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .container {
-            max-width: 900px;
-            margin: 3rem auto;
-            padding: 0 2rem;
-        }
-        
-        .page-header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-        
-        .page-header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
-            color: #1a1a1a;
-        }
-        
-        .page-header p {
-            font-size: 1.125rem;
-            color: #6b7280;
-        }
-        
-        .upload-card {
-            background: white;
-            border-radius: 16px;
-            padding: 3rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
-        
-        .upload-area {
-            border: 2px dashed #d1d5db;
-            border-radius: 12px;
-            padding: 4rem 2rem;
-            text-align: center;
-            transition: all 0.3s;
-            cursor: pointer;
-            background: #f9fafb;
-        }
-        
-        .upload-area:hover,
-        .upload-area.dragover {
-            border-color: #10b981;
-            background: #f0fdf4;
-        }
-        
-        .upload-icon {
-            font-size: 4rem;
-            color: #10b981;
-            margin-bottom: 1.5rem;
-        }
-        
-        .upload-area h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-            color: #1a1a1a;
-        }
-        
-        .upload-area p {
-            color: #6b7280;
-            margin-bottom: 1.5rem;
-        }
-        
-        .btn-upload {
-            background: #10b981;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-        }
-        
-        .btn-upload:hover {
-            background: #059669;
-            transform: translateY(-2px);
-        }
-        
-        #fileInput { display: none; }
-        
-        .preview-container {
-            margin-top: 2rem;
-            display: none;
-        }
-        
-        .preview-image {
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-        }
-        
-        .analyze-btn {
-            width: 100%;
-            background: #10b981;
-            color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            font-size: 1.125rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .analyze-btn:hover {
-            background: #059669;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f4f6;
-            border-top: 4px solid #10b981;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .result-card {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            display: none;
-        }
-        
-        .result-header {
-            text-align: center;
-            padding: 2rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-        }
-        
-        .result-fresh { background: #d1fae5; }
-        .result-okay { background: #fed7aa; }
-        .result-avoid { background: #fecaca; }
-        
-        .result-label {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .label-fresh { color: #065f46; }
-        .label-okay { color: #92400e; }
-        .label-avoid { color: #991b1b; }
-        
-        .confidence {
-            font-size: 1.25rem;
-            color: #6b7280;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-        
-        .info-item {
-            text-align: center;
-            padding: 1.5rem;
-            background: #f9fafb;
-            border-radius: 12px;
-        }
-        
-        .info-item h4 {
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-        }
-        
-        .info-item p {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-        
-        .tips-section {
-            background: #f0fdf4;
-            padding: 1.5rem;
-            border-radius: 12px;
-            border-left: 4px solid #10b981;
-        }
-        
-        .tips-section h3 {
-            color: #065f46;
-            margin-bottom: 1rem;
-        }
-        
-        .tips-section ul {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .tips-section li {
-            padding: 0.5rem 0;
-            color: #374151;
-        }
-        
-        .tips-section li::before {
-            content: "✓ ";
-            color: #10b981;
-            font-weight: bold;
-            margin-right: 0.5rem;
-        }
-    </style>
-</head>
-<body>
-    <nav>
-        <div class="nav-container">
-            <a href="/" class="logo">
-                <i class="fas fa-leaf"></i>
-                FreshAI
-            </a>
-            <a href="/auth/login" style="color: #10b981; text-decoration: none; font-weight: 600;">Login</a>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container">
-        <div class="page-header">
-            <h1>Try FreshAI Demo</h1>
-            <p>Upload a food image to analyze its freshness instantly</p>
-        </div>
+{% block title %}Demo — FoodFresh AI{% endblock %}
+{% block meta_description %}Try FoodFresh AI without signing up. Upload a food image and get a real AI freshness prediction with confidence scoring.{% endblock %}
 
-        <div class="upload-card">
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                </div>
-                <h3>Drag & Drop Your Image</h3>
-                <p>or click to browse (JPG, PNG, WEBP)</p>
-                <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-folder-open"></i> Choose File
-                </button>
-                <input type="file" id="fileInput" accept="image/*">
-            </div>
-
-            <div class="preview-container" id="previewContainer">
-                <img id="previewImage" class="preview-image" alt="Preview">
-                <button class="analyze-btn" onclick="analyzeImage()">
-                    <i class="fas fa-brain"></i> Analyze Freshness
-                </button>
-            </div>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Analyzing your image...</p>
-            </div>
-        </div>
-
-        <div class="result-card" id="resultCard">
-            <div class="result-header" id="resultHeader">
-                <div class="result-label" id="resultLabel">Fresh</div>
-                <div class="confidence" id="resultConfidence">87% Confidence</div>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-item">
-                    <h4>Food Category</h4>
-                    <p id="foodCategory">Fruit</p>
-                </div>
-                <div class="info-item">
-                    <h4>Quality Score</h4>
-                    <p id="qualityScore">Good</p>
-                </div>
-                <div class="info-item">
-                    <h4>Shelf Life</h4>
-                    <p id="shelfLife">3-7 days</p>
-                </div>
-            </div>
-
-            <div class="tips-section">
-                <h3><i class="fas fa-lightbulb"></i> Storage Recommendations</h3>
-                <ul id="storageTips">
-                    <li>Store in refrigerator crisper</li>
-                    <li>Keep away from ethylene-producing fruits</li>
-                    <li>Wash before eating, not before storing</li>
-                </ul>
-            </div>
-
-            <button class="analyze-btn" onclick="resetDemo()" style="margin-top: 2rem; background: #6b7280;">
-                <i class="fas fa-redo"></i> Analyze Another Image
-            </button>
-        </div>
+{% block content %}
+<section class="section-sm">
+  <div class="container" style="max-width: 800px;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <span class="badge badge-fresh"><i class="fas fa-play"></i> Live Demo</span>
+      <h1 style="margin-top: 1rem;">Try FoodFresh AI</h1>
+      <p class="text-muted">
+        This demo uses the <strong>same production AI model</strong> that powers the full application.
+        No registration needed — upload a food image and see a real prediction.
+      </p>
+      {% if not model_loaded %}
+      <div class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        The AI model is still loading. Please check back in a moment.
+      </div>
+      {% endif %}
     </div>
 
-    <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const previewContainer = document.getElementById('previewContainer');
-        const previewImage = document.getElementById('previewImage');
-        const loading = document.getElementById('loading');
-        const resultCard = document.getElementById('resultCard');
+    <!-- Upload area -->
+    <div class="card card-lg">
+      <form id="demoForm" enctype="multipart/form-data">
+        <label for="demoImage" class="sr-only">Upload a food image</label>
+        <div id="dropZone" class="upload-area" role="button" tabindex="0"
+             aria-label="Drag and drop an image here, or click to browse files">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <h3>Drag & drop an image here</h3>
+          <p class="text-muted">or</p>
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('demoImage').click()">
+            <i class="fas fa-folder-open"></i> Browse Files
+          </button>
+          <input type="file" id="demoImage" name="image" accept="image/png,image/jpeg,image/webp" style="display:none;">
+          <p class="text-tertiary text-sm" style="margin-top: 1rem;">
+            Supported formats: JPG, PNG, WEBP · Max size: 16 MB · Min resolution: 64×64 px
+          </p>
+        </div>
 
-        // Drag and drop
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
+        <!-- Image preview -->
+        <div id="previewContainer" style="display:none; margin-top: 1.5rem; text-align:center;">
+          <img id="previewImg" src="" alt="Uploaded food image preview"
+               style="max-height:300px;border-radius:var(--radius-md);border:1px solid var(--color-border);">
+        </div>
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        <button type="submit" id="analyzeBtn" class="btn btn-primary btn-lg btn-block" style="margin-top:1.5rem;" disabled>
+          <i class="fas fa-brain"></i> Analyze with AI
+        </button>
+      </form>
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'));
-        });
+      <!-- Loading state -->
+      <div id="loadingState" style="display:none; text-align:center; padding:2rem;" aria-live="polite">
+        <div class="spinner" style="margin:0 auto 1rem;"></div>
+        <p class="font-semibold">Analyzing your image…</p>
+        <p class="text-sm text-muted">The AI model is processing your photo.</p>
+      </div>
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'));
-        });
+      <!-- Error state -->
+      <div id="errorState" class="alert alert-error" style="display:none; margin-top:1.5rem;" role="alert">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="errorMessage"></span>
+      </div>
 
-        uploadArea.addEventListener('drop', handleDrop);
-        fileInput.addEventListener('change', handleFiles);
+      <!-- Result state -->
+      <div id="resultState" style="display:none; margin-top:1.5rem;">
+        <div class="card" style="background:var(--color-bg-alt); border-color:var(--color-border-dark);">
+          <div style="text-align:center; margin-bottom:1.5rem;">
+            <span id="resultBadge" class="badge badge-fresh" style="font-size:1.4rem;padding:0.5rem 1.5rem;"></span>
+            <div id="resultConfidence" class="confidence-value" style="margin-top:0.75rem;"></div>
+            <div id="resultLevel" class="badge badge-neutral" style="margin-top:0.5rem;"></div>
+          </div>
 
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles({ target: { files } });
-        }
+          <div class="progress-bar" style="margin-bottom:1.5rem;">
+            <div id="resultProgress" class="progress-fill progress-fresh" style="width:0%;"></div>
+          </div>
 
-        function handleFiles(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImage.src = e.target.result;
-                    uploadArea.style.display = 'none';
-                    previewContainer.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        }
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="stat-card">
+              <div class="stat-value" id="statFoodType" style="font-size:1.25rem;">—</div>
+              <div class="stat-label">Food Type</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statQuality" style="font-size:1.25rem;">—</div>
+              <div class="stat-label">Image Quality</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statLatency" style="font-size:1.25rem;">—</div>
+              <div class="stat-label">Inference Time</div>
+            </div>
+          </div>
 
-        async function analyzeImage() {
-            previewContainer.style.display = 'none';
-            loading.style.display = 'block';
+          <!-- Probability breakdown -->
+          <div style="margin-top:1.5rem;">
+            <h4 style="font-size:0.9rem;color:var(--color-text-secondary);">Model Probabilities</h4>
+            <div id="probBars"></div>
+          </div>
 
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
+          {% if not current_user.is_authenticated %}
+          <div class="alert alert-info" style="margin-top:1.5rem;">
+            <i class="fas fa-info-circle"></i>
+            This was a real AI prediction. <a href="{{ url_for('auth.register') }}" style="text-decoration:underline;font-weight:600;">Create a free account</a>
+            to save your analyses, view history, and get storage recommendations.
+          </div>
+          {% endif %}
+        </div>
 
-            loading.style.display = 'none';
-            resultCard.style.display = 'block';
+        <button type="button" class="btn btn-outline btn-block" style="margin-top:1rem;" onclick="resetDemo()">
+          <i class="fas fa-redo"></i> Analyze Another Image
+        </button>
+      </div>
+    </div>
 
-            // Mock result - in production, this would come from your API
-            displayResult({
-                label: 'Fresh',
-                confidence: 87,
-                category: 'Fruit',
-                quality: 'Good',
-                shelfLife: '3-7 days',
-                tips: [
-                    'Store in refrigerator crisper',
-                    'Keep away from ethylene-producing fruits',
-                    'Wash before eating, not before storing'
-                ]
-            });
-        }
+    <!-- Sample images -->
+    <div style="margin-top:2.5rem;">
+      <h3 style="text-align:center;margin-bottom:1rem;">Or try one of these examples</h3>
+      <p class="text-sm text-muted" style="text-align:center;margin-bottom:1.5rem;">
+        Curated sample images to explore what the model can do.
+      </p>
+      <div class="grid grid-cols-4">
+        {% for sample in samples %}
+        <div class="card" style="text-align:center;padding:var(--space-5);">
+          <div style="font-size:2.5rem;color:var(--color-primary);margin-bottom:0.5rem;">
+            <i class="fas {{ sample.icon }}"></i>
+          </div>
+          <h4 style="font-size:1rem;margin-bottom:0.25rem;">{{ sample.label }}</h4>
+          <p class="text-sm text-tertiary">{{ sample.description }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
 
-        function displayResult(result) {
-            const resultHeader = document.getElementById('resultHeader');
-            const resultLabel = document.getElementById('resultLabel');
-            const resultConfidence = document.getElementById('resultConfidence');
+{% block scripts %}
+<script>
+(function () {
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('demoImage');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const previewContainer = document.getElementById('previewContainer');
+  const previewImg = document.getElementById('previewImg');
+  const loadingState = document.getElementById('loadingState');
+  const errorState = document.getElementById('errorState');
+  const errorMessage = document.getElementById('errorMessage');
+  const resultState = document.getElementById('resultState');
 
-            resultHeader.className = 'result-header result-' + result.label.toLowerCase();
-            resultLabel.className = 'result-label label-' + result.label.toLowerCase();
-            resultLabel.textContent = result.label;
-            resultConfidence.textContent = result.confidence + '% Confidence';
+  // Drag and drop
+  ['dragenter', 'dragover'].forEach(ev => {
+    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  });
+  ['dragleave', 'drop'].forEach(ev => {
+    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+  });
+  dropZone.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    if (files.length > 0) { fileInput.files = files; handleFile(files[0]); }
+  });
+  dropZone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
 
-            document.getElementById('foodCategory').textContent = result.category;
-            document.getElementById('qualityScore').textContent = result.quality;
-            document.getElementById('shelfLife').textContent = result.shelfLife;
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+  });
 
-            const tipsList = document.getElementById('storageTips');
-            tipsList.innerHTML = result.tips.map(tip => `<li>${tip}</li>`).join('');
-        }
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      showError('Please select an image file (JPG, PNG, or WEBP).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      previewContainer.style.display = 'block';
+      analyzeBtn.disabled = false;
+      hideError();
+      hideResult();
+    };
+    reader.readAsDataURL(file);
+  }
 
-        function resetDemo() {
-            uploadArea.style.display = 'block';
-            previewContainer.style.display = 'none';
-            resultCard.style.display = 'none';
-            fileInput.value = '';
-        }
-    </script>
-</body>
-</html>
+  // Form submit
+  document.getElementById('demoForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!fileInput.files.length) return;
+
+    analyzeBtn.disabled = true;
+    loadingState.style.display = 'block';
+    hideError();
+    hideResult();
+
+    const formData = new FormData();
+    formData.append('image', fileInput.files[0]);
+
+    try {
+      const response = await fetch('/demo/predict', { method: 'POST', body: formData });
+      const data = await response.json();
+
+      loadingState.style.display = 'none';
+
+      if (!data.success) {
+        showError(data.error || 'We couldn\u2019t process this image. Please upload another clear image.');
+        analyzeBtn.disabled = false;
+        return;
+      }
+      showResult(data);
+    } catch (err) {
+      loadingState.style.display = 'none';
+      showError('Network error. Please try again.');
+      analyzeBtn.disabled = false;
+    }
+  });
+
+  function showResult(data) {
+    const badge = document.getElementById('resultBadge');
+    const label = data.prediction.toLowerCase();
+    badge.textContent = data.prediction;
+    badge.className = 'badge badge-' + label;
+    badge.style.fontSize = '1.4rem';
+    badge.style.padding = '0.5rem 1.5rem';
+
+    document.getElementById('resultConfidence').textContent = data.confidence + '% confidence';
+    document.getElementById('resultConfidence').className = 'confidence-value label-' + label;
+
+    const levelBadge = document.getElementById('resultLevel');
+    levelBadge.textContent = data.confidence_level + ' Confidence';
+    levelBadge.className = 'badge badge-' + data.confidence_level.toLowerCase();
+
+    const progress = document.getElementById('resultProgress');
+    progress.style.width = data.confidence + '%';
+    progress.className = 'progress-fill progress-' + label;
+
+    document.getElementById('statFoodType').textContent =
+      data.food_type ? data.food_type.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—';
+    document.getElementById('statQuality').textContent = data.quality.quality_label;
+    document.getElementById('statLatency').textContent = Math.round(data.inference_ms) + ' ms';
+
+    // Probability bars
+    const probBars = document.getElementById('probBars');
+    probBars.innerHTML = '';
+    Object.entries(data.probabilities).forEach(([cls, pct]) => {
+      const row = document.createElement('div');
+      row.style.marginBottom = '0.5rem';
+      row.innerHTML =
+        '<div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem;">' +
+        '<span>' + cls + '</span><span class="font-semibold">' + pct.toFixed(1) + '%</span></div>' +
+        '<div class="progress-bar"><div class="progress-fill progress-' + cls.toLowerCase() +
+        '" style="width:' + pct + '%;"></div></div>';
+      probBars.appendChild(row);
+    });
+
+    if (data.low_confidence_warning) {
+      const warn = document.createElement('div');
+      warn.className = 'alert alert-warning';
+      warn.style.marginTop = '1rem';
+      warn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' +
+        '<strong>Low confidence:</strong> the model is uncertain about this prediction. ' +
+        'Consider uploading a clearer, well-lit photo for a more reliable result.';
+      resultState.insertBefore(warn, resultState.firstChild.nextSibling);
+    }
+
+    resultState.style.display = 'block';
+  }
+
+  function showError(msg) {
+    errorMessage.textContent = msg;
+    errorState.style.display = 'block';
+  }
+  function hideError() { errorState.style.display = 'none'; }
+  function hideResult() { resultState.style.display = 'none'; }
+
+  window.resetDemo = function () {
+    fileInput.value = '';
+    previewContainer.style.display = 'none';
+    analyzeBtn.disabled = true;
+    hideResult();
+    hideError();
+  };
+})();
+</script>
+{% endblock %}

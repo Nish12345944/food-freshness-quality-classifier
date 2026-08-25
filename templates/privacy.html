@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy — FoodFresh AI{% endblock %}
+
+{% block content %}
+<section class="section-sm">
+  <div class="container" style="max-width: 720px;">
+    <h1><i class="fas fa-shield-alt"></i> Privacy</h1>
+    <p class="text-muted">How FoodFresh AI handles your data.</p>
+
+    <div class="card card-lg">
+      <h3>What we store</h3>
+      <ul style="list-style:disc;padding-left:1.5rem;color:var(--color-text-secondary);">
+        <li>Your username, optional email address, and a securely hashed password.</li>
+        <li>Images you upload for analysis and the resulting predictions.</li>
+      </ul>
+
+      <h3>What we don't do</h3>
+      <ul style="list-style:disc;padding-left:1.5rem;color:var(--color-text-secondary);">
+        <li>We never store passwords in plain text.</li>
+        <li>We never share your analyses with other users.</li>
+        <li>We never sell your data.</li>
+      </ul>
+
+      <h3>AI predictions disclaimer</h3>
+      <p class="text-muted text-sm">
+        FoodFresh AI provides visual freshness estimates only. Predictions are generated
+        by a machine-learning model and are not a substitute for professional food safety assessment.
+      </p>
+    </div>
+
+    <a href="{{ url_for('main.landing') }}" class="btn btn-outline" style="margin-top:1.5rem;">
+      <i class="fas fa-arrow-left"></i> Back to Home
+    </a>
+  </div>
+</section>
+{% endblock %}

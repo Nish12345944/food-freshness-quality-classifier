@@ -1,377 +1,166 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics - Food Freshness Classifier</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f0f23;
-            min-height: 100vh;
-            padding: 20px;
-            position: relative;
-            overflow-x: hidden;
-        }
-        
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-            z-index: -2;
-        }
-        
-        .animated-bg {
-            position: fixed;
-            width: 100vw;
-            height: 100vh;
-            top: 0;
-            left: 0;
-            z-index: -1;
-        }
-        
-        .shape {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.6;
-            animation: float 25s infinite ease-in-out;
-        }
-        
-        .shape:nth-child(1) {
-            width: 600px;
-            height: 600px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            top: -200px;
-            left: -200px;
-        }
-        
-        .shape:nth-child(2) {
-            width: 500px;
-            height: 500px;
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-            bottom: -150px;
-            right: -150px;
-            animation-delay: 7s;
-        }
-        
-        .shape:nth-child(3) {
-            width: 400px;
-            height: 400px;
-            background: linear-gradient(135deg, #4facfe, #00f2fe);
-            top: 40%;
-            left: 50%;
-            animation-delay: 14s;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-            33% { transform: translate(150px, -150px) scale(1.2) rotate(120deg); }
-            66% { transform: translate(-150px, 150px) scale(0.8) rotate(240deg); }
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(30px);
-            border-radius: 30px;
-            padding: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            animation: slideUp 0.8s ease-out;
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(50px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        h1 { 
-            color: #fff; 
-            margin-bottom: 40px; 
-            text-align: center;
-            font-size: 2.5em;
-            background: linear-gradient(135deg, #fff, #4ade80);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 2px 20px rgba(74, 222, 128, 0.3);
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-        .stat-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            color: white;
-            padding: 35px;
-            border-radius: 20px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.7s ease;
-        }
-        
-        .stat-card:hover::before {
-            left: 100%;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-10px) scale(1.05);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        }
-        
-        .stat-card.fresh { 
-            border-color: rgba(74, 222, 128, 0.5);
-            box-shadow: 0 10px 40px rgba(74, 222, 128, 0.3);
-        }
-        
-        .stat-card.fresh:hover {
-            box-shadow: 0 20px 60px rgba(74, 222, 128, 0.5);
-        }
-        
-        .stat-card.okay { 
-            border-color: rgba(251, 146, 60, 0.5);
-            box-shadow: 0 10px 40px rgba(251, 146, 60, 0.3);
-        }
-        
-        .stat-card.okay:hover {
-            box-shadow: 0 20px 60px rgba(251, 146, 60, 0.5);
-        }
-        
-        .stat-card.avoid { 
-            border-color: rgba(239, 68, 68, 0.5);
-            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
-        }
-        
-        .stat-card.avoid:hover {
-            box-shadow: 0 20px 60px rgba(239, 68, 68, 0.5);
-        }
-        
-        .stat-card.total { 
-            border-color: rgba(96, 165, 250, 0.5);
-            box-shadow: 0 10px 40px rgba(96, 165, 250, 0.3);
-        }
-        
-        .stat-card.total:hover {
-            box-shadow: 0 20px 60px rgba(96, 165, 250, 0.5);
-        }
-        
-        .stat-number { 
-            font-size: 3.5em; 
-            font-weight: bold; 
-            margin-bottom: 12px;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-            animation: countUp 1s ease-out;
-        }
-        
-        @keyframes countUp {
-            from { opacity: 0; transform: scale(0.5); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        .stat-label { 
-            font-size: 1.2em; 
-            opacity: 0.95;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-        .chart-container {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            padding: 35px;
-            border-radius: 20px;
-            margin-bottom: 35px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            transition: all 0.4s ease;
-        }
-        
-        .chart-container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
-        }
-        
-        .chart-container h2 { 
-            color: #fff; 
-            margin-bottom: 25px;
-            font-size: 1.8em;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        .btn {
-            display: inline-block;
-            padding: 14px 35px;
-            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 15px;
-            margin: 12px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 600;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 5px 20px rgba(74, 222, 128, 0.4);
-        }
-        
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-        
-        .btn:hover { 
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 10px 35px rgba(74, 222, 128, 0.6);
-        }
-        
-        .btn i {
-            position: relative;
-            z-index: 1;
-        }
-    </style>
-</head>
-<body>
-    <div class="animated-bg">
-        <div class="shape"></div>
-        <div class="shape"></div>
-        <div class="shape"></div>
+{% extends "base.html" %}
+
+{% block title %}Analytics — FoodFresh AI{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block content %}
+<section class="section-sm">
+  <div class="container">
+    <div style="margin-bottom: 2rem;">
+      <h1><i class="fas fa-chart-bar"></i> Analytics</h1>
+      <p class="text-muted">Insights from your food freshness analyses.</p>
     </div>
-    <div class="container">
-        <h1><i class="fas fa-chart-bar"></i> Analytics Dashboard</h1>
-        
-        <div class="stats-grid">
-            <div class="stat-card total">
-                <div class="stat-number">{{ total }}</div>
-                <div class="stat-label">Total Analyses</div>
-            </div>
-            <div class="stat-card fresh">
-                <div class="stat-number">{{ fresh }}</div>
-                <div class="stat-label">Fresh Items</div>
-            </div>
-            <div class="stat-card okay">
-                <div class="stat-number">{{ okay }}</div>
-                <div class="stat-label">Okay Items</div>
-            </div>
-            <div class="stat-card avoid">
-                <div class="stat-number">{{ avoid }}</div>
-                <div class="stat-label">Avoid Items</div>
-            </div>
-        </div>
-        
-        <div class="chart-container">
-            <h2>30-Day Trend Analysis</h2>
-            <canvas id="trendChart"></canvas>
-        </div>
-        
-        <div class="chart-container">
-            <h2>Food Type Distribution</h2>
-            <canvas id="foodTypeChart"></canvas>
-        </div>
-        
-        <div style="text-align: center;">
-            <a href="/dashboard" class="btn"><i class="fas fa-home"></i> Back to Dashboard</a>
-        </div>
+
+    {% if total == 0 %}
+    <div class="card">
+      <div class="empty-state">
+        <i class="fas fa-chart-line"></i>
+        <p>No analyses yet. Upload your first food image to see insights here.</p>
+        <a href="{{ url_for('prediction.dashboard') }}" class="btn btn-primary" style="margin-top:1rem;">
+          <i class="fas fa-camera"></i> Analyze Food
+        </a>
+      </div>
     </div>
-    
-    <script>
-        const dailyStats = {{ daily_stats|safe }};
-        const foodTypeStats = {{ food_type_stats|safe }};
-        
-        // Trend Chart
-        const dates = Object.keys(dailyStats).sort();
-        const freshData = dates.map(d => dailyStats[d].Fresh || 0);
-        const okayData = dates.map(d => dailyStats[d].Okay || 0);
-        const avoidData = dates.map(d => dailyStats[d].Avoid || 0);
-        
-        new Chart(document.getElementById('trendChart'), {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'Fresh',
-                    data: freshData,
-                    borderColor: '#4CAF50',
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                    tension: 0.4
-                }, {
-                    label: 'Okay',
-                    data: okayData,
-                    borderColor: '#FF9800',
-                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                    tension: 0.4
-                }, {
-                    label: 'Avoid',
-                    data: avoidData,
-                    borderColor: '#f44336',
-                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'top' }
-                }
-            }
-        });
-        
-        // Food Type Chart
-        new Chart(document.getElementById('foodTypeChart'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(foodTypeStats).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
-                datasets: [{
-                    data: Object.values(foodTypeStats),
-                    backgroundColor: ['#4CAF50', '#FF9800', '#2196F3', '#9C27B0', '#FF5722']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'right' }
-                }
-            }
-        });
-    </script>
-</body>
-</html>
+    {% else %}
+
+    <!-- KPI cards -->
+    {% set avoid_pct = ((avoid / total * 100) | round(1)) if total else 0 %}
+    {% set avg_conf = ((fresh + okay + avoid) and ((fresh * 0.9 + okay * 0.6 + avoid * 0.3) / total * 100) | round(1)) or 0 %}
+    <div class="stats-grid" style="grid-template-columns:repeat(5,1fr); margin-bottom:2rem;">
+      <div class="stat-card">
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Total Analyses</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--color-fresh);">
+        <div class="stat-value label-fresh">{{ fresh }}</div>
+        <div class="stat-label">Fresh</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--color-okay);">
+        <div class="stat-value label-okay">{{ okay }}</div>
+        <div class="stat-label">Okay</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--color-avoid);">
+        <div class="stat-value label-avoid">{{ avoid }}</div>
+        <div class="stat-label">Avoid</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ avoid_pct }}%</div>
+        <div class="stat-label">Avoid Rate</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-2">
+      <div class="card card-lg">
+        <h3>Freshness Distribution</h3>
+        <p class="text-sm text-muted">Overall breakdown of your predictions.</p>
+        <canvas id="distChart" height="220" role="img" aria-label="Pie chart of freshness distribution"></canvas>
+      </div>
+      <div class="card card-lg">
+        <h3>Analysis Activity</h3>
+        <p class="text-sm text-muted">Daily predictions over the last 30 days.</p>
+        <canvas id="activityChart" height="220" role="img" aria-label="Bar chart of daily analysis activity"></canvas>
+      </div>
+      <div class="card card-lg">
+        <h3>Food Category Distribution</h3>
+        <p class="text-sm text-muted">Which food types you analyse most.</p>
+        <canvas id="foodChart" height="220" role="img" aria-label="Doughnut chart of food categories"></canvas>
+      </div>
+      <div class="card card-lg">
+        <h3>Avoid Percentage</h3>
+        <p class="text-sm text-muted">Share of items flagged as Avoid — a high value may indicate storage issues.</p>
+        <div style="display:flex;align-items:center;justify-content:center;padding:2rem 0;">
+          <div style="text-align:center;">
+            <div class="confidence-value label-avoid" style="font-size:4rem;">{{ avoid_pct }}%</div>
+            <p class="text-muted">{{ avoid }} of {{ total }} analyses flagged as Avoid</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insight -->
+    {% if avoid_pct > 30 %}
+    <div class="alert alert-warning" style="margin-top:1.5rem;">
+      <i class="fas fa-lightbulb"></i>
+      <strong>Insight:</strong> {{ avoid_pct }}% of your analyses are flagged as Avoid.
+      Consider reviewing your storage conditions or checking food more frequently.
+    </div>
+    {% elif fresh > 0 and (fresh / total * 100) | round(0) >= 70 %}
+    <div class="alert alert-success" style="margin-top:1.5rem;">
+      <i class="fas fa-thumbs-up"></i>
+      <strong>Great:</strong> most of your food is estimated Fresh. Keep up good storage habits!
+    </div>
+    {% endif %}
+
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if total > 0 %}
+<script>
+const dailyStats = {{ daily_stats|safe }};
+const foodTypeStats = {{ food_type_stats|safe }};
+
+// Freshness distribution
+new Chart(document.getElementById('distChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Fresh', 'Okay', 'Avoid'],
+    datasets: [{
+      data: [{{ fresh }}, {{ okay }}, {{ avoid }}],
+      backgroundColor: ['#16a34a', '#ea580c', '#dc2626'],
+      borderWidth: 0,
+    }]
+  },
+  options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+});
+
+// Activity over time
+const dates = Object.keys(dailyStats).sort();
+const freshData = dates.map(d => dailyStats[d]['Fresh'] || 0);
+const okayData = dates.map(d => dailyStats[d]['Okay'] || 0);
+const avoidData = dates.map(d => dailyStats[d]['Avoid'] || 0);
+new Chart(document.getElementById('activityChart'), {
+  type: 'bar',
+  data: {
+    labels: dates,
+    datasets: [
+      { label: 'Fresh', data: freshData, backgroundColor: '#16a34a', stack: 's' },
+      { label: 'Okay', data: okayData, backgroundColor: '#ea580c', stack: 's' },
+      { label: 'Avoid', data: avoidData, backgroundColor: '#dc2626', stack: 's' },
+    ]
+  },
+  options: {
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      x: { stacked: true, ticks: { maxTicksLimit: 10 } },
+      y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+    }
+  }
+});
+
+// Food category distribution
+new Chart(document.getElementById('foodChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(foodTypeStats),
+    datasets: [{
+      label: 'Analyses',
+      data: Object.values(foodTypeStats),
+      backgroundColor: '#0ea5e9',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

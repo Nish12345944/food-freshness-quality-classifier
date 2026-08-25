@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}History — FoodFresh AI{% endblock %}
+
+{% block content %}
+<section class="section-sm">
+  <div class="container">
+    <div style="margin-bottom: 2rem;">
+      <h1><i class="fas fa-history"></i> Analysis History</h1>
+      <p class="text-muted">All your food freshness analyses.</p>
+    </div>
+
+    <!-- Search & filters -->
+    <form method="GET" action="{{ url_for('prediction.history') }}" class="card" style="margin-bottom:1.5rem;">
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:end;">
+        <div style="flex:1;min-width:200px;">
+          <label for="q" class="form-label">Search by food type</label>
+          <input type="text" id="q" name="q" class="form-input" value="{{ search }}" placeholder="e.g. fruit, dairy…">
+        </div>
+        <div>
+          <label for="label" class="form-label">Prediction</label>
+          <select id="label" name="label" class="form-input">
+            <option value="">All</option>
+            {% for lbl in ['Fresh', 'Okay', 'Avoid'] %}
+            <option value="{{ lbl }}" {{ 'selected' if label_filter == lbl }}>{{ lbl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
+        {% if search or label_filter %}
+        <a href="{{ url_for('prediction.history') }}" class="btn btn-ghost">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- Results table -->
+    <div class="card" style="padding:0; overflow-x:auto;">
+      {% if analyses %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Timestamp</th>
+            <th scope="col">Food Type</th>
+            <th scope="col">Prediction</th>
+            <th scope="col">Confidence</th>
+            <th scope="col">Level</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for analysis in analyses %}
+          <tr>
+            <td>{{ analysis.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ analysis.food_type|title if analysis.food_type else '—' }}</td>
+            <td><span class="badge badge-{{ analysis.label.lower() }}">{{ analysis.label }}</span></td>
+            <td>{{ '%.1f'|format(analysis.confidence * 100) }}%</td>
+            <td>
+              {% if analysis.confidence_level %}
+              <span class="badge badge-{{ analysis.confidence_level.lower() }}">{{ analysis.confidence_level }}</span>
+              {% else %}<span class="text-tertiary">—</span>{% endif %}
+            </td>
+            <td><a href="/result/{{ analysis.id }}" class="btn btn-outline btn-sm">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>No analyses yet. Upload your first food image to get started.</p>
+        <a href="{{ url_for('prediction.dashboard') }}" class="btn btn-primary" style="margin-top:1rem;">
+          <i class="fas fa-camera"></i> Analyze Food
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav class="flex-center flex-gap" style="margin-top:1.5rem;" aria-label="History pagination">
+      {% if page > 1 %}
+      <a href="{{ url_for('prediction.history', page=page-1, q=search, label=label_filter) }}"
+         class="btn btn-outline btn-sm">&laquo; Previous</a>
+      {% endif %}
+      <span class="text-sm text-muted">Page {{ page }} of {{ total_pages }} ({{ total }} total)</span>
+      {% if page < total_pages %}
+      <a href="{{ url_for('prediction.history', page=page+1, q=search, label=label_filter) }}"
+         class="btn btn-outline btn-sm">Next &raquo;</a>
+      {% endif %}
+    </nav>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

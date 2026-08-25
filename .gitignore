@@ -25,3 +25,4 @@ static/profiles/*
 .vscode/
 .idea/
 *.whl
+"__pycache__/" ; git add -A 

@@ -1,6 +1,7 @@
 flask
 flask-login
 flask-sqlalchemy
+flask-limiter
 opencv-python-headless
 pillow
 numpy
@@ -9,3 +10,7 @@ sqlalchemy
 reportlab
 qrcode
 gunicorn
+torch
+torchvision
+scikit-learn
+matplotlib

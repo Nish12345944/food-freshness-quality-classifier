@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FoodFresh AI{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}AI-powered visual freshness assessment for food. Upload a photo and get an instant freshness estimate with confidence scoring and storage recommendations.{% endblock %}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  {% block body_extra %}{% endblock %}
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="{{ url_for('prediction.dashboard') if current_user.is_authenticated else url_for('main.landing') }}" class="nav-brand">
+        <i class="fas fa-leaf"></i> FoodFresh AI
+      </a>
+      <div class="nav-links">
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('prediction.dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+          <a href="{{ url_for('analytics.analytics') }}"><i class="fas fa-chart-bar"></i> Analytics</a>
+          <a href="{{ url_for('prediction.history') }}"><i class="fas fa-history"></i> History</a>
+          <a href="{{ url_for('prediction.demo') }}"><i class="fas fa-play"></i> Demo</a>
+          <div class="nav-user">
+            <a href="{{ url_for('auth.profile') }}" class="flex-gap">
+              <img src="{{ url_for('static', filename='profiles/' + (current_user.profile_picture or 'default.png')) }}"
+                   alt="Profile" class="nav-user-avatar">
+              <span class="text-sm font-medium">{{ current_user.username }}</span>
+            </a>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm" title="Logout">
+              <i class="fas fa-sign-out-alt"></i>
+            </a>
+          </div>
+        {% else %}
+          <a href="{{ url_for('main.landing') }}">Home</a>
+          <a href="{{ url_for('main.landing') }}#features">Features</a>
+          <a href="{{ url_for('prediction.demo') }}">Demo</a>
+          <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Login</a>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Sign Up</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container" style="margin-top: 1rem;">
+        {% for category, message in messages %}
+          {% set alert_class = {
+            'error': 'alert-error',
+            'warning': 'alert-warning',
+            'success': 'alert-success',
+            'info': 'alert-info'
+          }.get(category, 'alert-info') %}
+          <div class="alert {{ alert_class }}" role="alert">
+            <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'warning' %}fa-exclamation-triangle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Main content -->
+  {% block content %}{% endblock %}
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h4>FoodFresh AI</h4>
+          <p>AI-powered visual freshness assessment for food. Upload a photo and get an instant freshness estimate with confidence scoring and storage recommendations.</p>
+          <p style="margin-top: 0.5rem; font-size: 0.8rem;">This tool provides visual estimates only — not a substitute for professional food safety assessment.</p>
+        </div>
+        <div class="footer-section">
+          <h4>Product</h4>
+          <a href="{{ url_for('main.landing') }}#features">Features</a>
+          <a href="{{ url_for('prediction.demo') }}">Demo</a>
+          <a href="{{ url_for('prediction.dashboard') }}">Dashboard</a>
+          <a href="{{ url_for('main.landing') }}#how-it-works">How It Works</a>
+        </div>
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <a href="{{ url_for('main.landing') }}#features">Capabilities</a>
+          <a href="https://github.com/Nish12345944/food-freshness-quality-classifier" target="_blank" rel="noopener">GitHub</a>
+        </div>
+        <div class="footer-section">
+          <h4>Legal</h4>
+          <a href="{{ url_for('main.landing') }}#disclaimer">Disclaimer</a>
+          <a href="{{ url_for('main.privacy') }}">Privacy</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 FoodFresh AI. AI-powered visual freshness assessment.</p>
+      </div>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
+</arg_value>
+</arg_value>
+<task_progress>
+- [x] Inspect current templates and static assets
+- [x] Create design system (CSS + base template)
+- [ ] Build landing page (FoodFresh AI)
+- [ ] Create demo mode
+- [ ] Build upload/analysis page
+- [ ] Build result page with explainability
+- [ ] Upgrade dashboard
+- [ ] Upgrade analytics
+- [ ] Create history page
+- [ ] Improve batch results
+- [ ] Add versioned API (/api/v1/)
+- [ ] Add security headers
+- [ ] Add error/empty/loading states
+- [ ] Ensure responsive design + accessibility
+- [ ] Validate all flows end-to-end
+- [ ] Provide final summary
+</task_progress>
+</write_to_file></tool_call>
