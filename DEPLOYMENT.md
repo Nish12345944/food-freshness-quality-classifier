@@ -1,207 +1,96 @@
-# 🚀 Deployment Guide - Render
+# 🚀 Deployment Guide — Render
 
-## Prerequisites
-- GitHub account
-- Render account (free tier available at https://render.com)
-- Git installed on your local machine
+This guide matches the **current** repository state: WSGI entry `wsgi:app`,
+Python 3.13.5, and a fail-closed model-artifact contract.
 
-## Step-by-Step Deployment Instructions
+## Before you can deploy a working app: you need a trained model
 
-### 1. Prepare Your Repository
+The classifier uses a **real trained MobileNetV3-Small** artifact at
+`models/food_freshness.pt`. This file is **not** in the repository (large binary,
+kept out of git). Render’s build (`build.sh`) will **fail** unless you provide it
+one of two ways:
 
-**Push your code to GitHub:**
+1. **Set `MODEL_URL`** in the Render dashboard to a direct HTTPS URL of a real
+   `food_freshness.pt` file (e.g. a Hugging Face Hub “resolve/main” link), OR
+2. **Commit the trained model** into the repository at `models/food_freshness.pt`
+   (not recommended — large binary, must be in git).
+
+> ⚠️ Do not set `MODEL_URL` until you actually have a trained artifact. There is
+> no default/published model URL for this project.
+
+### Train the model first (local machine)
 
 ```bash
-# Initialize git (if not already done)
-git init
-
-# Add all files
-git add .
-
-# Commit changes
-git commit -m "Initial commit - Food Freshness Classifier"
-
-# Add your GitHub repository as remote
-git remote add origin https://github.com/YOUR_USERNAME/food-freshness-classifier.git
-
-# Push to GitHub
-git push -u origin main
+# 1. Put your dataset in data/food_freshness/{Fresh,Okay,Avoid}/<images>
+cd training
+pip install torch torchvision scikit-learn   # training-only deps
+python train.py                              # writes ../models/food_freshness.pt
+python evaluate.py --model ../models/food_freshness.pt   # writes metrics.json (real numbers)
 ```
 
-### 2. Create Render Account
+See [`training/README.md`](training/README.md) for the dataset layout.
 
-1. Go to https://render.com
-2. Sign up with your GitHub account
-3. Authorize Render to access your repositories
+### Verify the trained model locally
 
-### 3. Deploy on Render
+```bash
+python scripts/smoke_test_model.py models/food_freshness.pt   # exits 0 on PASS
+python -m pytest tests/test_model_smoke.py -v
+```
 
-**Create a New Web Service:**
+## Deploy on Render
 
-1. Click **"New +"** button in Render dashboard
-2. Select **"Web Service"**
-3. Connect your GitHub repository
-4. Configure the service:
-
-   **Basic Settings:**
-   - **Name:** `food-freshness-classifier` (or your preferred name)
-   - **Region:** Choose closest to your location
-   - **Branch:** `main`
-   - **Root Directory:** Leave blank
+1. Push this repository to GitHub.
+2. In Render: **New → Web Service** → connect your repo → **Blueprint** (uses
+   `render.yaml`) or **Manual**.
+3. If using “Manual”, set:
    - **Runtime:** `Python 3`
    - **Build Command:** `./build.sh`
-   - **Start Command:** `gunicorn app:app`
+   - **Start Command:** `gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120`
+   - **Health Check Path:** `/health`
+4. Add environment variables (Render dashboard):
+   - `SECRET_KEY` (generate: `python -c "import secrets; print(secrets.token_hex(32))"`)
+   - `MODEL_URL` → your real trained artifact URL (or commit the model)
+   - `PYTHON_VERSION` → `3.13.5`
+   - Optional: `DATABASE_URL` (Render PostgreSQL), SMTP_* for email reports
 
-   **Instance Type:**
-   - Select **Free** tier (or paid if needed)
+## PostgreSQL in production
 
-5. Click **"Advanced"** and add Environment Variables:
+- Create a **PostgreSQL** database on Render.
+- Copy its **Internal Database URL** and set it as `DATABASE_URL`.
+- The app reads `DATABASE_URL` and uses PostgreSQL automatically
+  (`psycopg2-binary` is in `requirements.txt`).
+- No `DATABASE_URL` → falls back to local SQLite (fine for demos only; Render’s
+  disk is ephemeral).
+- `db.create_all()` is non-destructive: existing data is preserved, missing
+  columns are added in-place. The database is never dropped/recreated on start.
 
-   ```
-   SECRET_KEY = your-secret-key-here-make-it-random
-   PYTHON_VERSION = 3.11.0
-   ```
+## Email (optional)
 
-6. Click **"Create Web Service"**
+SMTP is optional. Without `SENDER_EMAIL`/`SENDER_PASSWORD` the app still starts,
+predictions still work, and the email-report button fails gracefully.
 
-### 4. Wait for Deployment
+## Storage note
 
-- Render will automatically:
-  - Install dependencies from `requirements.txt`
-  - Run `build.sh` to set up directories and database
-  - Start the application with gunicorn
-  
-- Deployment typically takes 5-10 minutes
-- Monitor the logs in real-time on Render dashboard
+Render’s local filesystem is ephemeral — uploaded images and generated PDFs are
+lost on redeploy. For durable storage add an object store (S3-compatible) and
+point the app at it. Object storage is **not** required for basic prediction.
 
-### 5. Access Your Application
+## Confirming the deploy is healthy
 
-Once deployed, Render will provide a URL like:
-```
-https://food-freshness-classifier.onrender.com
-```
+The build will succeed only when a real model is present. After startup:
 
-**Default Login Credentials:**
-- Username: `admin`
-- Password: `password`
-
-⚠️ **IMPORTANT:** Change the default password immediately after first login!
-
-## 🔧 Configuration Options
-
-### Environment Variables (Optional)
-
-Add these in Render dashboard under "Environment":
-
-```bash
-# Required
-SECRET_KEY=your-super-secret-random-key-here
-
-# Optional - Email Configuration
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SENDER_EMAIL=your-email@gmail.com
-SENDER_PASSWORD=your-app-password
-
-# Optional - Database (if using PostgreSQL)
-DATABASE_URL=postgresql://user:password@host:port/dbname
+```text
+GET /health          -> {"status":"healthy","model_loaded":true,"model_validated":true,...}
+GET /api/v1/health   -> same shape under "data"
 ```
 
-### Using PostgreSQL (Recommended for Production)
+If `model_loaded`/`model_validated` is `false`, the model is missing or invalid —
+do not treat the app as fully functional.
 
-1. In Render dashboard, create a **PostgreSQL** database
-2. Copy the **Internal Database URL**
-3. Add it as `DATABASE_URL` environment variable
-4. Update `requirements.txt` to include:
-   ```
-   psycopg2-binary==2.9.9
-   ```
+## Troubleshooting
 
-## 📝 Post-Deployment Steps
-
-### 1. Test the Application
-- Visit your Render URL
-- Test login functionality
-- Upload a test image
-- Verify all features work
-
-### 2. Custom Domain (Optional)
-1. Go to your web service settings
-2. Click "Custom Domain"
-3. Add your domain and follow DNS instructions
-
-### 3. Enable Auto-Deploy
-- Render automatically deploys on every push to `main` branch
-- Disable in settings if you want manual deployments
-
-## 🐛 Troubleshooting
-
-### Build Fails
-- Check logs in Render dashboard
-- Verify `requirements.txt` has correct package versions
-- Ensure `build.sh` has execute permissions
-
-### Application Crashes
-- Check application logs
-- Verify environment variables are set
-- Ensure database is initialized
-
-### Camera Feature Not Working
-- Webcam capture won't work on server (expected)
-- Feature will be disabled automatically
-- Works only on local development
-
-### Upload Issues
-- Render free tier has limited disk space
-- Consider using cloud storage (AWS S3, Cloudinary) for production
-- Implement file cleanup for old uploads
-
-## 🔄 Updating Your Application
-
-```bash
-# Make changes locally
-git add .
-git commit -m "Your update message"
-git push origin main
-
-# Render will automatically redeploy
-```
-
-## 💰 Cost Considerations
-
-**Free Tier Limitations:**
-- Service spins down after 15 minutes of inactivity
-- First request after spin-down takes 30-60 seconds
-- 750 hours/month free
-
-**Paid Tier Benefits ($7/month):**
-- Always-on service
-- No cold starts
-- More resources
-- Better performance
-
-## 📊 Monitoring
-
-- View logs in Render dashboard
-- Set up email alerts for failures
-- Monitor resource usage
-
-## 🔒 Security Best Practices
-
-1. **Change default credentials immediately**
-2. **Use strong SECRET_KEY** (generate with: `python -c "import secrets; print(secrets.token_hex(32))"`)
-3. **Enable HTTPS** (automatic on Render)
-4. **Don't commit sensitive data** to GitHub
-5. **Use environment variables** for all secrets
-
-## 📞 Support
-
-- Render Documentation: https://render.com/docs
-- Render Community: https://community.render.com
-- GitHub Issues: Create an issue in your repository
-
----
-
-✅ **Your Food Freshness Classifier is now live!**
-
-Share your deployment URL and start classifying food freshness! 🍎🥗
+- **Build fails with “A trained model artifact is required for production”** →
+  `MODEL_URL` is empty and no `models/food_freshness.pt` exists. Set a valid
+  `MODEL_URL` or commit the model.
+- **Login slow?** Free tier cold-starts (~30–60s on first request).
+- **Webcam capture** is a local-only feature (no webcam on the server).

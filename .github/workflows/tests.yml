@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           cache: pip
 
       - name: Install dependencies
@@ -24,7 +24,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Compile check (syntax validation)
-        run: python -m compileall -q app training wsgi.py
+        run: python -m compileall -q app training scripts wsgi.py
 
-      - name: Run pytest
+      - name: Run pytest (offline — model smoke test skips without an artifact)
         run: python -m pytest tests/ -v

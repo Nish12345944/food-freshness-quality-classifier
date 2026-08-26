@@ -65,6 +65,7 @@ class PredictionService:
         self.model_version = model_version
         self.conf_high = conf_high
         self.conf_medium = conf_medium
+        self.input_size = 224
         self._model: Optional[nn.Module] = None
         self._loaded = False
         self._load_model()

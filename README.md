@@ -4,7 +4,7 @@
 
 [![Tests](https://github.com/Nish12345944/food-freshness-quality-classifier/actions/workflows/tests.yml/badge.svg)](https://github.com/Nish12345944/food-freshness-quality-classifier/actions/workflows/tests.yml)
 [![Deploy Check](https://github.com/Nish12345944/food-freshness-quality-classifier/actions/workflows/deploy-check.yml/badge.svg)](https://github.com/Nish12345944/food-freshness-quality-classifier/actions/workflows/deploy-check.yml)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.x-000000?logo=flask&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-MobileNetV3-EE4C2C?logo=pytorch&logoColor=white)
 ![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)
@@ -13,7 +13,13 @@
 > powered by a real deep-learning model with confidence scoring, explainable AI
 > heatmaps, and smart storage recommendations.
 
-🔗 **Live Demo:** [foodfresh-ai.onrender.com](https://foodfresh-ai.onrender.com) · 💻 **GitHub:** [this repository](https://github.com/Nish12345944/food-freshness-quality-classifier)
+🔗 **GitHub:** [this repository](https://github.com/Nish12345944/food-freshness-quality-classifier)
+
+> **⚠️ Live-deploy status at a glance:** the web app builds and runs, but a
+> **trained model is required** before freshness predictions actually work. The
+> production build **fails closed** until `models/food_freshness.pt` exists or
+> `MODEL_URL` points at one. Predictions return 503 (`model_loaded: false`)
+> until a real model is provided. See [Model deployment](#model-deployment).
 
 ---
 
@@ -105,7 +111,7 @@ prove causality.
 
 | Layer | Technology |
 |---|---|
-| Backend | Python 3.11, Flask 3, Gunicorn |
+| Backend | Python 3.13, Flask 3, Gunicorn |
 | ML | PyTorch, torchvision (MobileNetV3-Small), OpenCV, Pillow |
 | Database | SQLAlchemy 2 → PostgreSQL (prod) / SQLite (dev) |
 | Auth | Flask-Login, PBKDF2-SHA256 password hashing |
@@ -184,7 +190,7 @@ pytest tests/ -v                 # 40 tests, fully offline
 
 1. Push to GitHub and create a Render Web Service from this repo
 2. Render reads `render.yaml`: build via `build.sh`, start via
-   `gunicorn wsgi:app --bind 0.0.0.0:$PORT`
+   `gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120`
 3. Set environment variables in the dashboard (`SECRET_KEY`, optionally
    `DATABASE_URL` pointing at Render PostgreSQL, SMTP credentials)
 4. Health check path is `/health`
@@ -194,6 +200,33 @@ Notes:
 - Render's local filesystem is ephemeral — uploaded images/reports are lost on
   redeploy. Use object storage for durable files (see
   [`docs/architecture.md`](docs/architecture.md#storage-architecture)).
+
+### Model deployment (fail-closed)
+
+`build.sh` obtains the model artifact (`models/food_freshness.pt`) as follows:
+
+```
+if model file present      -> use it
+else if MODEL_URL set      -> download + verify it
+else if REQUIRE_MODEL=1    -> BUILD FAILS (never silently ship a broken AI app)
+else (REQUIRE_MODEL=0)     -> degraded boot, model_loaded=false
+```
+
+To deploy a **genuinely working** classifier you must provide a real trained
+artifact — commit it to `models/food_freshness.pt` **or** set `MODEL_URL` to a
+direct HTTPS link to one. There is **no default/published model URL** in this
+repo. See [`DEPLOYMENT.md`](DEPLOYMENT.md) and [`training/README.md`](training/README.md).
+
+### Verify a real model (local + CI)
+
+```bash
+python scripts/smoke_test_model.py models/food_freshness.pt   # exit 0 = PASS
+python -m pytest tests/test_model_smoke.py -v                 # skips if no model
+```
+
+The GitHub Actions workflow `.github/workflows/model-smoke.yml` runs this check
+against a real artifact when `MODEL_URL` is configured, and reports a skip
+otherwise — it never fabricates model results.
 
 ## Testing
 
@@ -206,6 +239,7 @@ tests/
 ├── test_api.py               # API auth, envelope shape, owner-only access, status codes
 ├── test_analytics.py         # KPIs, filters, empty states
 ├── test_health.py            # health endpoints, honest degraded state
+├── test_model_smoke.py       # REAL-model smoke test (skips when no artifact)
 └── test_security.py          # security headers, error pages, rate limiting
 ```
 

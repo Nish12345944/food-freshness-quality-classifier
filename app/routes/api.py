@@ -15,10 +15,13 @@ def health():
     """Health check — does not perform inference."""
     svc = get_prediction_service()
     db_ok = _check_db()
-    status = "healthy" if svc.is_loaded and db_ok else "degraded"
+    validated = current_app.extensions.get("model_validated")
+    model_ok = svc.is_loaded and bool(validated and validated.get("valid"))
+    status = "healthy" if model_ok and db_ok else "degraded"
     return jsonify({
         "status": status,
         "model_loaded": svc.is_loaded,
+        "model_validated": bool(validated and validated.get("valid")),
         "model_version": svc.model_version,
         "database": "connected" if db_ok else "error",
         "version": current_app.config.get("APP_VERSION", "unknown"),

@@ -13,8 +13,20 @@ services:
         generateValue: true
       - key: APP_VERSION
         value: 1.0.0
+      # MODEL_URL must point at a REAL trained artifact (models/food_freshness.pt).
+      # Leave empty until you have trained + uploaded a model. build.sh fails if
+      # a model is required but unavailable, so the service will not build until
+      # this is a valid URL or a model file is committed.
+      - key: MODEL_URL
+        sync: false
+      - key: MODEL_PATH
+        value: models/food_freshness.pt
+      - key: MODEL_VERSION
+        value: 1.0.0
+      # 1 = fail build without a real model (production). Set to 0 only for a
+      # temporary degraded/demo deployment with no model.
+      - key: REQUIRE_MODEL
+        value: "1"
       # Set these in the Render dashboard (do not commit real values):
       #   DATABASE_URL       — Render PostgreSQL connection string (optional; SQLite fallback)
-      #   MODEL_PATH         — path to trained model artifact (default models/food_freshness.pt)
-      #   MODEL_VERSION      — version label recorded with each prediction
       #   SMTP_SERVER / SMTP_PORT / SENDER_EMAIL / SENDER_PASSWORD — email reports (optional)

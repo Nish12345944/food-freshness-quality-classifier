@@ -1,0 +1,47 @@
+name: Model Smoke Test
+
+# Validates a REAL trained artifact against the actual prediction stack.
+# Runs only when a model is available (MODEL_URL); otherwise it reports a
+# skipped check — it never fabricates model results.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  model-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.6.0" "torchvision>=0.21.0"
+          pip install -r requirements-dev.txt
+
+      - name: Check for a model source
+        id: model_check
+        env:
+          MODEL_URL: ${{ vars.MODEL_URL }}
+        run: |
+          mkdir -p models
+          if [ -n "$MODEL_URL" ]; then
+            curl -fsSL --retry 3 -o models/food_freshness.pt "$MODEL_URL"
+            echo "downloaded=true" >> "$GITHUB_OUTPUT"
+            echo "Model downloaded from MODEL_URL ($(stat -c%s models/food_freshness.pt) bytes)."
+          else
+            echo "downloaded=false" >> "$GITHUB_OUTPUT"
+            echo "No MODEL_URL configured — model smoke test will be skipped (needs a real trained artifact)."
+          fi
+
+      - name: Run real-model smoke test
+        if: steps.model_check.outputs.downloaded == 'true'
+        run: |
+          python scripts/smoke_test_model.py models/food_freshness.pt
+          python -m pytest tests/test_model_smoke.py -v

@@ -68,8 +68,38 @@ def create_app(config: Config = None) -> Flask:
         db.create_all()
         _migrate_schema()
         init_prediction_service(app)
+        _validate_model_on_startup(app)
 
     return app
+
+
+def _validate_model_on_startup(app) -> None:
+    """Log a real smoke-test of the model at boot; never blocks startup.
+
+    The result is exposed via the /health endpoints as ``model_validated``.
+    """
+    import logging
+
+    from .services.model_validation import validate_model
+    from .services.prediction_service import get_prediction_service
+
+    logger = logging.getLogger(__name__)
+    svc = get_prediction_service()
+    app.extensions["model_validated"] = None  # explicit "not validated" default
+    if not svc.is_loaded:
+        logger.info("No model loaded at startup — model validation skipped.")
+        return
+    try:
+        result = validate_model(svc)
+        app.extensions["model_validated"] = result
+        logger.info(
+            "Startup model smoke test: %s (valid=%s)",
+            "PASS" if result.get("valid") else "FAIL",
+            result.get("valid"),
+        )
+    except Exception:
+        logger.exception("Startup model validation errored")
+        app.extensions["model_validated"] = None
 
 
 def _migrate_schema() -> None:
