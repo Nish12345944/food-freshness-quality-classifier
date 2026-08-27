@@ -30,6 +30,9 @@ static/gradcam/
 static/profiles/*
 !static/profiles/default.png
 
+# Training dataset (download/prepare locally; do not commit)
+data/
+
 # Model artifacts (train locally; do not commit large binaries)
 models/*.pt
 models/*.pth

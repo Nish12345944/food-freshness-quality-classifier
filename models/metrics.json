@@ -1,0 +1,49 @@
+{
+  "accuracy": 0.9788135593220338,
+  "precision": 0.9788561934363635,
+  "recall": 0.9788135593220338,
+  "f1": 0.978797195529257,
+  "per_class": [
+    {
+      "class": "Fresh",
+      "precision": 0.970954356846473,
+      "recall": 0.9873417721518988,
+      "f1": 0.9790794979079498,
+      "support": 711
+    },
+    {
+      "class": "Okay",
+      "precision": 0.9741750358680057,
+      "recall": 0.9617563739376771,
+      "f1": 0.9679258731290092,
+      "support": 706
+    },
+    {
+      "class": "Avoid",
+      "precision": 0.9914772727272727,
+      "recall": 0.9872701555869873,
+      "f1": 0.9893692416725727,
+      "support": 707
+    }
+  ],
+  "confusion_matrix": [
+    [
+      702,
+      9,
+      0
+    ],
+    [
+      21,
+      679,
+      6
+    ],
+    [
+      0,
+      9,
+      698
+    ]
+  ],
+  "classification_report_text": "              precision    recall  f1-score   support\n\n       Fresh       0.97      0.99      0.98       711\n        Okay       0.97      0.96      0.97       706\n       Avoid       0.99      0.99      0.99       707\n\n    accuracy                           0.98      2124\n   macro avg       0.98      0.98      0.98      2124\nweighted avg       0.98      0.98      0.98      2124\n",
+  "split": "test",
+  "n_samples": 2124
+}

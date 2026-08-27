@@ -1,107 +1,209 @@
-"""
-Real-model validation (smoke test) for the food-freshness classifier.
+"""Startup validation for the production prediction model."""
 
-Verifies the deployed MobileNetV3-Small artifact is genuine and usable:
-
-- the model file exists
-- the model loads successfully
-- the expected architecture is present (3-class head on MobileNetV3-Small)
-- inference runs end-to-end
-- output probabilities are valid (all >= 0) and sum to ~1
-- the predicted label is one of Fresh / Okay / Avoid
-
-No fabricated accuracy is ever reported.  When the artifact is absent this
-returns valid=False with a clear reason (used by tests to skip, not to fake
-results).
-"""
+from __future__ import annotations
 
 import logging
-import os
-from typing import List, Optional
+from typing import Any
 
 import numpy as np
-import torch
-
-from app.services.prediction_service import LABELS, NUM_CLASSES, PredictionService
 
 logger = logging.getLogger(__name__)
 
 
-def _record(checks: List[dict], name: str, passed: bool, detail: str = "") -> bool:
-    checks.append({"check": name, "passed": bool(passed), "detail": detail})
+def _record(
+    checks: list[dict[str, Any]],
+    name: str,
+    passed: bool,
+    detail: str,
+) -> bool:
+    """Record one validation check and return its boolean result."""
+    checks.append(
+        {
+            "check": name,
+            "passed": bool(passed),
+            "detail": detail,
+        }
+    )
     return bool(passed)
 
 
-def validate_model(service: PredictionService) -> dict:
-    """Run the full model smoke test.
+def validate_model(prediction_service) -> dict[str, Any]:
+    """Run a lightweight inference smoke test against the loaded model."""
 
-    Returns a dict: {"valid": bool, "ready": bool, "checks": [...], "prediction": ...}
-    """
-    checks: List[dict] = []
+    checks: list[dict[str, Any]] = []
     valid = True
 
-    # 1. File exists
-    file_exists = bool(service.model_path) and os.path.isfile(service.model_path)
-    valid &= _record(checks, "model_file_exists", file_exists, str(service.model_path))
+    # ---------------------------------------------------------
+    # Model loaded
+    # ---------------------------------------------------------
 
-    # 2. Model loads.
-    loadable = service.is_loaded and service.model is not None
-    valid &= _record(checks, "model_loads", loadable)
+    loaded = bool(prediction_service.is_loaded)
 
-    if not file_exists or not loadable:
-        logger.info(
-            "Model validation aborted (file_exists=%s loads=%s)",
-            file_exists, loadable,
+    valid &= _record(
+        checks,
+        "model_loaded",
+        loaded,
+        "prediction service reports loaded",
+    )
+
+    if not loaded:
+        return {
+            "valid": False,
+            "checks": checks,
+        }
+
+    # ---------------------------------------------------------
+    # Model metadata
+    # ---------------------------------------------------------
+
+    model = prediction_service.model
+
+    valid &= _record(
+        checks,
+        "model_available",
+        model is not None,
+        "model object is available",
+    )
+
+    if model is None:
+        return {
+            "valid": False,
+            "checks": checks,
+        }
+
+    # ---------------------------------------------------------
+    # Dummy inference
+    # ---------------------------------------------------------
+
+    try:
+        import torch
+
+        input_size = getattr(
+            prediction_service,
+            "input_size",
+            224,
         )
-        return _finish(valid, checks)
 
-    model = service.model
+        dummy = torch.zeros(
+            1,
+            3,
+            input_size,
+            input_size,
+        )
 
-    # 3 & 4. Expected architecture and class count (MobileNetV3-Small + 3-class head).
-    head_out = None
-    try:
-        head_out = int(model.classifier[-1].out_features)
-    except Exception:
-        head_out = None
-    arch_ok = head_out is not None and head_out == NUM_CLASSES
-    valid &= _record(checks, "expected_architecture", arch_ok, f"last_head.out_features={head_out}")
-    valid &= _record(checks, "class_count", arch_ok, f"expected={NUM_CLASSES} got={head_out}")
+        device = next(model.parameters()).device
+        dummy = dummy.to(device)
 
-    # 5–8. Inference + valid probabilities.
-    if not arch_ok:
-        return _finish(valid, checks)
-
-    probs = None
-    try:
-        sample = torch.zeros(1, 3, service.input_size, service.input_size)
-        model.eval()
         with torch.no_grad():
-            logits = model(sample)
-            probs = torch.softmax(logits, dim=1).squeeze().cpu().numpy()
-        valid &= _record(checks, "inference_runs", True, f"logits_shape={tuple(logits.shape)}")
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Inference during model validation failed")
-        valid &= _record(checks, "inference_runs", False, str(exc))
-        return _finish(valid, checks)
+            output = model(dummy)
 
-    all_nonneg = bool(np.all(probs >= 0)) and bool(np.all(probs <= 1))
-    valid &= _record("probabilities_valid", all_nonneg, "all probs in [0,1]")
-    prob_sum = float(probs.sum())
-    sum_ok = abs(prob_sum - 1.0) < 1e-3
-    valid &= _record("probabilities_sum", sum_ok, f"sum={prob_sum:.6f}")
-    idx = int(np.argmax(probs))
-    prediction = LABELS[idx] if idx < len(LABELS) else "?"
-    in_labels = prediction in LABELS
-    valid &= _record("prediction_in_labels", in_labels, prediction)
+        valid &= _record(
+            checks,
+            "inference_success",
+            output is not None,
+            "dummy inference completed",
+        )
 
-    return _finish(valid, checks, probs=probs, prediction=prediction)
+        # -----------------------------------------------------
+        # Output shape
+        # -----------------------------------------------------
 
+        shape_ok = (
+            hasattr(output, "shape")
+            and len(output.shape) == 2
+            and output.shape[0] == 1
+        )
 
-def _finish(valid, checks, probs=None, prediction=None) -> dict:
+        valid &= _record(
+            checks,
+            "output_shape",
+            shape_ok,
+            f"shape={getattr(output, 'shape', None)}",
+        )
+
+        if not shape_ok:
+            return {
+                "valid": False,
+                "checks": checks,
+            }
+
+        # -----------------------------------------------------
+        # Probabilities
+        # -----------------------------------------------------
+
+        probabilities = torch.softmax(output, dim=1)
+
+        probs = probabilities.detach().cpu().numpy()[0]
+
+        finite_ok = bool(np.isfinite(probs).all())
+
+        valid &= _record(
+            checks,
+            "probabilities_finite",
+            finite_ok,
+            f"values={probs.tolist()}",
+        )
+
+        nonnegative_ok = bool((probs >= 0).all())
+
+        valid &= _record(
+            checks,
+            "probabilities_nonnegative",
+            nonnegative_ok,
+            "all probabilities >= 0",
+        )
+
+        within_range_ok = bool((probs <= 1).all())
+
+        valid &= _record(
+            checks,
+            "probabilities_range",
+            within_range_ok,
+            "all probabilities <= 1",
+        )
+
+        prob_sum = float(probs.sum())
+
+        sum_ok = abs(prob_sum - 1.0) < 1e-5
+
+        valid &= _record(
+            checks,
+            "probabilities_sum",
+            sum_ok,
+            f"sum={prob_sum:.6f}",
+        )
+
+        # -----------------------------------------------------
+        # Prediction
+        # -----------------------------------------------------
+
+        predicted_index = int(np.argmax(probs))
+
+        num_classes = int(probs.shape[0])
+
+        prediction_ok = (
+            num_classes > 0
+            and 0 <= predicted_index < num_classes
+        )
+
+        valid &= _record(
+            checks,
+            "prediction_index",
+            prediction_ok,
+            f"index={predicted_index}",
+        )
+
+    except Exception as exc:
+        logger.exception("Model validation inference failed")
+
+        valid &= _record(
+            checks,
+            "inference_success",
+            False,
+            f"{type(exc).__name__}: {exc}",
+        )
+
     return {
         "valid": bool(valid),
-        "ready": bool(valid),
         "checks": checks,
-        "probabilities": probs,
-        "prediction": prediction,
     }

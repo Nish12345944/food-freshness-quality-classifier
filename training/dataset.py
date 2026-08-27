@@ -24,7 +24,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from config import (  # noqa: E402  (same-directory import)
+from .config import (  # noqa: E402  (same-directory import)
     CLASSES,
     DATA_DIR,
     INPUT_SIZE,

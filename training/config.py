@@ -18,9 +18,9 @@ INPUT_SIZE = 224
 PRETRAINED = True
 
 # Training
-BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "32"))
-EPOCHS = int(os.environ.get("EPOCHS", "30"))
-LR = float(os.environ.get("LR", "1e-3"))
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "16"))
+EPOCHS = int(os.environ.get("EPOCHS", "20"))
+LR = float(os.environ.get("LR", "1e-4"))
 LR_STEP_SIZE = 7
 LR_GAMMA = 0.1
 WEIGHT_DECAY = 1e-4
@@ -33,4 +33,4 @@ CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "models")
 BEST_MODEL_NAME = "food_freshness.pt"
 
 # Class imbalance — set to True to use weighted sampler
-USE_WEIGHTED_SAMPLER = True
+USE_WEIGHTED_SAMPLER = False
