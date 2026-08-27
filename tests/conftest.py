@@ -14,6 +14,8 @@ class TestConfig(Config):
     SECRET_KEY = "test-secret-key"
     # Use a throwaway SQLite DB per test run
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    # Tests intentionally run without the real ML model.
+    MODEL_ENABLED = False
 
 
 @pytest.fixture()

@@ -162,13 +162,36 @@ _service: Optional[PredictionService] = None
 
 def init_prediction_service(app) -> None:
     global _service
+
     cfg = app.config
-    _service = PredictionService(
-        model_path=cfg["MODEL_PATH"],
-        model_version=cfg["MODEL_VERSION"],
-        conf_high=cfg["CONFIDENCE_HIGH"],
-        conf_medium=cfg["CONFIDENCE_MEDIUM"],
-    )
+
+    model_enabled = cfg.get("MODEL_ENABLED", True)
+
+    if not model_enabled:
+        logger.info(
+            "Model loading disabled by configuration."
+        )
+
+        _service = PredictionService.__new__(
+            PredictionService
+        )
+
+        _service.model_path = cfg["MODEL_PATH"]
+        _service.model_version = cfg["MODEL_VERSION"]
+        _service.conf_high = cfg["CONFIDENCE_HIGH"]
+        _service.conf_medium = cfg["CONFIDENCE_MEDIUM"]
+        _service.input_size = 224
+        _service._model = None
+        _service._loaded = False
+
+    else:
+        _service = PredictionService(
+            model_path=cfg["MODEL_PATH"],
+            model_version=cfg["MODEL_VERSION"],
+            conf_high=cfg["CONFIDENCE_HIGH"],
+            conf_medium=cfg["CONFIDENCE_MEDIUM"],
+        )
+
     app.extensions["prediction_service"] = _service
 
 

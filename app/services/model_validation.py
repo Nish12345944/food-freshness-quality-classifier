@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import numpy as np
@@ -27,11 +28,56 @@ def _record(
     return bool(passed)
 
 
+def _result(
+    valid: bool,
+    checks: list[dict[str, Any]],
+    probabilities=None,
+    prediction=None,
+) -> dict[str, Any]:
+    """Build a consistent validation result."""
+    return {
+        "valid": bool(valid),
+        "ready": bool(valid),
+        "checks": checks,
+        "probabilities": probabilities,
+        "prediction": prediction,
+    }
+
+
 def validate_model(prediction_service) -> dict[str, Any]:
     """Run a lightweight inference smoke test against the loaded model."""
 
     checks: list[dict[str, Any]] = []
     valid = True
+
+    probabilities = None
+    prediction = None
+
+    # ---------------------------------------------------------
+    # Model file exists
+    # ---------------------------------------------------------
+
+    model_path = getattr(prediction_service, "model_path", None)
+
+    model_file_exists = bool(
+        model_path
+        and os.path.isfile(str(model_path))
+    )
+
+    valid &= _record(
+        checks,
+        "model_file_exists",
+        model_file_exists,
+        f"path={model_path}",
+    )
+
+    if not model_file_exists:
+        return _result(
+            False,
+            checks,
+            probabilities,
+            prediction,
+        )
 
     # ---------------------------------------------------------
     # Model loaded
@@ -47,29 +93,35 @@ def validate_model(prediction_service) -> dict[str, Any]:
     )
 
     if not loaded:
-        return {
-            "valid": False,
-            "checks": checks,
-        }
+        return _result(
+            False,
+            checks,
+            probabilities,
+            prediction,
+        )
 
     # ---------------------------------------------------------
-    # Model metadata
+    # Model available
     # ---------------------------------------------------------
 
     model = prediction_service.model
 
+    model_available = model is not None
+
     valid &= _record(
         checks,
         "model_available",
-        model is not None,
+        model_available,
         "model object is available",
     )
 
-    if model is None:
-        return {
-            "valid": False,
-            "checks": checks,
-        }
+    if not model_available:
+        return _result(
+            False,
+            checks,
+            probabilities,
+            prediction,
+        )
 
     # ---------------------------------------------------------
     # Dummy inference
@@ -94,15 +146,27 @@ def validate_model(prediction_service) -> dict[str, Any]:
         device = next(model.parameters()).device
         dummy = dummy.to(device)
 
+        model.eval()
+
         with torch.no_grad():
             output = model(dummy)
+
+        inference_ok = output is not None
 
         valid &= _record(
             checks,
             "inference_success",
-            output is not None,
+            inference_ok,
             "dummy inference completed",
         )
+
+        if not inference_ok:
+            return _result(
+                False,
+                checks,
+                probabilities,
+                prediction,
+            )
 
         # -----------------------------------------------------
         # Output shape
@@ -112,6 +176,7 @@ def validate_model(prediction_service) -> dict[str, Any]:
             hasattr(output, "shape")
             and len(output.shape) == 2
             and output.shape[0] == 1
+            and output.shape[1] > 0
         )
 
         valid &= _record(
@@ -122,20 +187,36 @@ def validate_model(prediction_service) -> dict[str, Any]:
         )
 
         if not shape_ok:
-            return {
-                "valid": False,
-                "checks": checks,
-            }
+            return _result(
+                False,
+                checks,
+                probabilities,
+                prediction,
+            )
 
         # -----------------------------------------------------
         # Probabilities
         # -----------------------------------------------------
 
-        probabilities = torch.softmax(output, dim=1)
+        probability_tensor = torch.softmax(
+            output,
+            dim=1,
+        )
 
-        probs = probabilities.detach().cpu().numpy()[0]
+        probs = (
+            probability_tensor
+            .detach()
+            .cpu()
+            .numpy()[0]
+        )
 
-        finite_ok = bool(np.isfinite(probs).all())
+        # Keep this as a NumPy array because the test suite
+        # expects probabilities.sum() to be available.
+        probabilities = probs
+
+        finite_ok = bool(
+            np.isfinite(probs).all()
+        )
 
         valid &= _record(
             checks,
@@ -144,7 +225,9 @@ def validate_model(prediction_service) -> dict[str, Any]:
             f"values={probs.tolist()}",
         )
 
-        nonnegative_ok = bool((probs >= 0).all())
+        nonnegative_ok = bool(
+            (probs >= 0).all()
+        )
 
         valid &= _record(
             checks,
@@ -153,7 +236,9 @@ def validate_model(prediction_service) -> dict[str, Any]:
             "all probabilities >= 0",
         )
 
-        within_range_ok = bool((probs <= 1).all())
+        within_range_ok = bool(
+            (probs <= 1).all()
+        )
 
         valid &= _record(
             checks,
@@ -177,13 +262,37 @@ def validate_model(prediction_service) -> dict[str, Any]:
         # Prediction
         # -----------------------------------------------------
 
-        predicted_index = int(np.argmax(probs))
+        predicted_index = int(
+            np.argmax(probs)
+        )
 
-        num_classes = int(probs.shape[0])
+        labels = getattr(
+            prediction_service,
+            "classes",
+            ["Fresh", "Okay", "Avoid"],
+        )
+
+        # Some implementations expose class labels through
+        # a different attribute. Fall back safely.
+        if not labels:
+            labels = ["Fresh", "Okay", "Avoid"]
+
+        if (
+            0 <= predicted_index
+            < len(labels)
+        ):
+            prediction = labels[predicted_index]
+        else:
+            prediction = None
+
+        num_classes = int(
+            probs.shape[0]
+        )
 
         prediction_ok = (
             num_classes > 0
             and 0 <= predicted_index < num_classes
+            and prediction in labels
         )
 
         valid &= _record(
@@ -194,7 +303,9 @@ def validate_model(prediction_service) -> dict[str, Any]:
         )
 
     except Exception as exc:
-        logger.exception("Model validation inference failed")
+        logger.exception(
+            "Model validation inference failed"
+        )
 
         valid &= _record(
             checks,
@@ -203,7 +314,14 @@ def validate_model(prediction_service) -> dict[str, Any]:
             f"{type(exc).__name__}: {exc}",
         )
 
-    return {
-        "valid": bool(valid),
-        "checks": checks,
-    }
+    return _result(
+        valid,
+        checks,
+        probabilities,
+        prediction,
+    )
+
+
+__all__ = [
+    "validate_model",
+]
